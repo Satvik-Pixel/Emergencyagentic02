@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emergency Result</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 30px 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 540px; }
+
+        h2 { color: #c0392b; margin-bottom: 20px; }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .card h3 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #555;
+            padding: 4px 0;
+        }
+
+        .row strong { color: #333; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f8f8f8; color: #555; }
+
+        .badge {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .badge-critical { background: #c0392b; }
+        .badge-moderate { background: #e67e22; }
+        .badge-low      { background: #27ae60; }
+
+        .note {
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            color: #2980b9;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h2>🚨 Emergency Summary</h2>
+
+    <!-- This page displays data passed via sessionStorage from index.html -->
+    <!-- It is optional — the main flow lives entirely on index.html -->
+
+    <div class="card">
+        <h3>Triage</h3>
+        <div class="row"><strong>Emergency Type</strong> <span id="emergencyType">—</span></div>
+        <div class="row"><strong>Severity Score</strong> <span id="severityScore">—</span></div>
+        <div class="row"><strong>Severity Level</strong> <span id="severityLevel">—</span></div>
+        <div class="row"><strong>Specialist</strong>     <span id="specialist">—</span></div>
+    </div>
+
+    <div class="card">
+        <h3>Location</h3>
+        <div class="row"><strong>Area</strong> <span id="location">—</span></div>
+    </div>
+
+    <div class="card">
+        <h3>Nearby Hospitals</h3>
+        <table>
+            <thead>
+                <tr><th>Hospital</th><th>Distance</th></tr>
+            </thead>
+            <tbody id="hospitalTable">
+                <tr><td colspan="2" style="color:#aaa;">No data</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="note">Use the main page to submit a new emergency and reserve a bed.</p>
+    <a class="back-link" href="/">← Back to Emergency Form</a>
+
+</div>
+
+<script>
+    // Read data stored by index.html (if navigated here programmatically)
+    try {
+        const stored = sessionStorage.getItem("emergencyResult");
+        if (stored) {
+            const data = JSON.parse(stored);
+            const t = data.triage || {};
+            const level = t.severity_level || "Low";
+            const badgeClass = level === "Critical" ? "badge-critical"
+                             : level === "Moderate"  ? "badge-moderate"
+                             : "badge-low";
+
+            document.getElementById("emergencyType").textContent   = t.emergency_type || "—";
+            document.getElementById("severityScore").innerHTML     =
+                `${t.severity_score || "—"}/10 &nbsp;<span class="badge ${badgeClass}">${level}</span>`;
+            document.getElementById("severityLevel").textContent   = level;
+            document.getElementById("specialist").textContent      = t.required_specialist || "—";
+            document.getElementById("location").textContent        = data.location || "—";
+
+            const tbody = document.getElementById("hospitalTable");
+            if (data.hospitals && data.hospitals.length > 0) {
+                tbody.innerHTML = data.hospitals.map(h =>
+                    `<tr>
+                        <td>${h.name}</td>
+                        <td>${(h.distance_meters / 1000).toFixed(1)} km</td>
+                    </tr>`
+                ).join("");
+            }
+        }
+    } catch (e) {
+        console.warn("No emergency data in sessionStorage:", e);
+    }
+</script>
+</body>
+</html>
