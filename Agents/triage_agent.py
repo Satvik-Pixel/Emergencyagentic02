@@ -4,7 +4,7 @@ import os
 import json
 import re
 
-API_KEY = ""
+API_KEY = "AIzaSyCgpK3zf809vEztHyfd5bKHGvZVBzLVT34"
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",

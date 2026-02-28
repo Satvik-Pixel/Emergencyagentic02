@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
         :root {
             --bg:          #080a0d;
             --surface:     #0f1218;
@@ -1308,9 +1307,9 @@ function completeCase(id) {
             renderCases(); updateStats();
             showToast(`✅ Case ${id} complete`, 'success');
         });
-}
+    }
 
-function viewCase(id) {
+    function viewCase(id) {
     window.location.href = `/result?id=${id}`;
 }
 
@@ -1381,5 +1380,406 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 900);
 });
 </script>
+<!-- ═══════════════════════════════════════════════════════════
+     EMERGENCYAI FLOATING CHATBOT  — predefined KB + Anthropic API
+═══════════════════════════════════════════════════════════ -->
+<style>
+/* ─── FAB ─── */
+.chat-fab{position:fixed;bottom:28px;right:28px;width:58px;height:58px;border-radius:50%;background:var(--red,#ff2d3b);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 6px 28px rgba(255,45,59,.45);z-index:8900;transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;animation:fabPulse 2.6s ease-in-out infinite;}
+.chat-fab:hover{transform:scale(1.1);}
+.chat-fab.open{animation:none;transform:scale(.92);}
+@keyframes fabPulse{0%,100%{box-shadow:0 6px 28px rgba(255,45,59,.4);}50%{box-shadow:0 8px 44px rgba(255,45,59,.65),0 0 70px rgba(255,45,59,.15);}}
+.fab-dot{position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:#00e676;border:2px solid var(--bg,#0a0b0d);animation:blinkDot 1.8s ease-in-out infinite;}
+@keyframes blinkDot{0%,100%{opacity:1;}50%{opacity:.25;}}
+.fab-ico-chat{display:block}.fab-ico-x{display:none}
+.chat-fab.open .fab-ico-chat{display:none}.chat-fab.open .fab-ico-x{display:block}
+
+/* ─── WINDOW ─── */
+.chat-win{position:fixed;bottom:100px;right:28px;width:370px;max-height:590px;background:var(--surface,#111318);border:1px solid rgba(255,255,255,.08);border-radius:22px;box-shadow:0 28px 90px rgba(0,0,0,.75),0 0 0 1px rgba(255,45,59,.05);display:flex;flex-direction:column;overflow:hidden;z-index:8899;transform-origin:bottom right;transform:scale(.85) translateY(20px);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .28s ease;}
+.chat-win.show{transform:scale(1) translateY(0);opacity:1;pointer-events:all;}
+.chat-win::before{content:'';display:block;height:2px;background:linear-gradient(90deg,var(--red,#ff2d3b),rgba(255,45,59,.25),transparent);flex-shrink:0;}
+
+/* ─── HEADER ─── */
+.cw-head{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.cw-ava{width:38px;height:38px;border-radius:11px;background:var(--red,#ff2d3b);display:flex;align-items:center;justify-content:center;font-size:19px;position:relative;flex-shrink:0;}
+.cw-ava::after{content:'';position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#00e676;border:2px solid var(--surface,#111318);animation:blinkDot 2s ease-in-out infinite;}
+.cw-info{flex:1}
+.cw-name{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:15px;letter-spacing:.08em;color:var(--text,#f0f2f5);line-height:1;}
+.cw-status{font-size:10px;font-weight:700;color:#00e676;letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.cw-hbtn{width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:var(--muted,#6b7280);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;}
+.cw-hbtn:hover{border-color:rgba(255,255,255,.15);color:var(--text,#f0f2f5);}
+
+/* ─── QUICK CHIPS ─── */
+.cw-chips{display:flex;gap:5px;flex-wrap:wrap;padding:9px 12px 7px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;}
+.cw-chip{padding:4px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted,#6b7280);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;}
+.cw-chip:hover{border-color:rgba(255,45,59,.45);color:var(--red,#ff2d3b);background:rgba(255,45,59,.06);}
+
+/* ─── MESSAGES ─── */
+.cw-msgs{flex:1;overflow-y:auto;padding:12px 12px 4px;display:flex;flex-direction:column;gap:9px;scroll-behavior:smooth;}
+.cw-msgs::-webkit-scrollbar{width:3px;}
+.cw-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+.cw-msg{display:flex;gap:7px;align-items:flex-end;animation:msgIn .28s ease forwards;opacity:0;}
+.cw-msg.u{flex-direction:row-reverse;}
+@keyframes msgIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+.cw-mava{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.cw-mava.b{background:rgba(255,45,59,.1);border:1px solid rgba(255,45,59,.2);}
+.cw-mava.u{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);}
+.cw-bbl{max-width:80%;padding:9px 13px;border-radius:13px;font-size:13px;line-height:1.6;position:relative;}
+.cw-bbl.b{background:var(--surface-2,#181c24);border:1px solid rgba(255,255,255,.07);color:var(--text,#f0f2f5);border-bottom-left-radius:3px;}
+.cw-bbl.u{background:var(--red,#ff2d3b);color:#fff;border-bottom-right-radius:3px;box-shadow:0 4px 14px rgba(255,45,59,.3);}
+.cw-bbl strong{color:var(--green,#00e676);}
+.cw-bbl em{color:var(--amber,#f59e0b);font-style:normal;font-weight:600;}
+.cw-time{font-size:9px;color:var(--muted-2,#4b5563);margin-top:3px;display:block;font-family:'JetBrains Mono',monospace;}
+
+/* typing dots */
+.cw-typing{display:flex;gap:4px;align-items:center;padding:4px 2px;}
+.cw-typing span{width:6px;height:6px;border-radius:50%;background:var(--muted,#6b7280);animation:typeDot .9s ease-in-out infinite;}
+.cw-typing span:nth-child(2){animation-delay:.15s;}
+.cw-typing span:nth-child(3){animation-delay:.3s;}
+@keyframes typeDot{0%,80%,100%{transform:scale(.8);opacity:.4;}40%{transform:scale(1.1);opacity:1;}}
+
+/* ─── INPUT ─── */
+.cw-foot{display:flex;gap:8px;padding:10px 12px 14px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.cw-inp{flex:1;background:var(--surface-2,#181c24);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--text,#f0f2f5);font-family:'Space Grotesk',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;resize:none;max-height:80px;line-height:1.5;}
+.cw-inp:focus{border-color:rgba(255,45,59,.45);box-shadow:0 0 0 3px rgba(255,45,59,.07);}
+.cw-inp::placeholder{color:var(--muted-2,#4b5563);}
+.cw-send{width:38px;height:38px;border-radius:10px;border:none;background:var(--red,#ff2d3b);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;align-self:flex-end;}
+.cw-send:hover{background:#e8001a;transform:translateY(-1px);box-shadow:0 4px 14px rgba(255,45,59,.4);}
+.cw-send:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:480px){
+  .chat-win{width:calc(100vw - 24px);right:12px;bottom:88px;}
+  .chat-fab{bottom:20px;right:16px;}
+}
+</style>
+
+<!-- FAB Button -->
+<button class="chat-fab" id="chatFab" aria-label="Open AI Assistant">
+  <span class="fab-ico-chat">🤖</span>
+  <span class="fab-ico-x">✕</span>
+  <span class="fab-dot"></span>
+</button>
+
+<!-- Chat Window -->
+<div class="chat-win" id="chatWin">
+  <div class="cw-head">
+    <div class="cw-ava">🚨</div>
+    <div class="cw-info">
+      <div class="cw-name">EmergencyAI Assistant</div>
+      <div class="cw-status">● Online — Always here</div>
+    </div>
+    <button class="cw-hbtn" id="chatClearBtn" title="Clear chat">🗑</button>
+    <button class="cw-hbtn" id="chatCloseBtn" title="Close">✕</button>
+  </div>
+
+  <div class="cw-chips" id="chatChips"></div>
+  <div class="cw-msgs"  id="chatMsgs"></div>
+
+  <div class="cw-foot">
+    <textarea class="cw-inp" id="chatInp" rows="1"
+      placeholder="Ask anything about your emergency…"></textarea>
+    <button class="cw-send" id="chatSend">➤</button>
+  </div>
+</div>
+
+<script>
+(function(){
+/* ═══════════════════════════════════════════════════════════
+   PAGE DETECTION — determines which KB + chips to load
+═══════════════════════════════════════════════════════════ */
+const PAGE = (function(){
+  const p = window.location.pathname;
+  if(p.includes('result'))    return 'result';
+  if(p.includes('dashboard')) return 'dashboard';
+  return 'form';
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   PREDEFINED KNOWLEDGE BASE (no API needed for common Qs)
+═══════════════════════════════════════════════════════════ */
+const KB = {
+  form: [
+    { q:['how does this work','what is this','explain'], a:`<strong>EmergencyAI</strong> is a rapid-response system.\n\n<em>Step 1</em> — Describe your emergency & allow location access.\n<em>Step 2</em> — Our AI triages your case and finds nearby hospitals.\n<em>Step 3</em> — Select a hospital to instantly reserve a bed.\n\nAmbulance dispatch and doctor assignment happen automatically.` },
+    { q:['location','gps','coordinates','allow location'], a:`Your location is detected via browser GPS for maximum accuracy. If blocked:\n\n• Click <em>↺ retry</em> after allowing access in your browser\n• Or enter <em>Latitude / Longitude</em> manually in the fields below the location box\n\nYour coordinates are only used to find nearby hospitals — never stored.` },
+    { q:['triage','severity','score','assessed'], a:`Our AI triage engine analyzes your description and assigns:\n\n<strong>Severity Score</strong> — 1 (mild) to 10 (life-threatening)\n<strong>Severity Level</strong> — Low / Moderate / Critical\n<strong>Specialist</strong> — Which doctor you need\n<strong>Department</strong> — Which hospital wing to prepare\n\nHigher scores get faster response and priority routing.` },
+    { q:['hospital','bed','reserve','select'], a:`We show the <strong>nearest hospitals</strong> with available beds, sorted by distance.\n\nClick <em>Reserve</em> on any hospital to instantly book a bed. The hospital is notified immediately and medical staff begin preparing for your arrival.` },
+    { q:['ambulance','dispatch','transport'], a:`Once you reserve a bed, an ambulance is automatically dispatched to your GPS location.\n\nYou can track status on the <strong>Emergency Summary</strong> page:\n<em>Received → Dispatched → En Route → Arrived</em>` },
+    { q:['cost','bill','charge','price','fee'], a:`An <em>estimated bill</em> is shown after triage — it's a rough range based on emergency type and hospital rates. Final billing happens at the hospital after treatment.\n\nAll costs shown are estimates only.` },
+    { q:['emergency','help','urgent','call','911'], a:`⚠️ If this is a <strong>life-threatening emergency</strong>, call <em>112</em> (India) immediately alongside using this form.\n\nThis system is designed to <strong>speed up hospital arrival</strong> by pre-reserving a bed and dispatching an ambulance — but for cardiac arrest or major trauma, also call emergency services.` },
+    { q:['what to type','describe','message','explain emergency'], a:`Be as specific as possible. Include:\n\n• <em>What happened</em> (e.g. "chest pain", "road accident")\n• <em>Patient age</em> and gender if possible\n• <em>Duration</em> of symptoms\n• <em>Any known conditions</em> (diabetes, heart disease…)\n\nExample: <strong>"55-year-old male, severe chest pain radiating to left arm, started 20 mins ago, history of hypertension"</strong>` },
+  ],
+
+  result: [
+    { q:['reference','ref','id','case number'], a:`Your <strong>Reference Number</strong> (e.g. EMG-8847) is shown at the top of this page. Share it with hospital staff on arrival — they use it to pull up your pre-registered case instantly.` },
+    { q:['severity','score','critical','moderate','low'], a:`Severity levels explained:\n\n<strong>Critical (7–10)</strong> — Life-threatening. Immediate intervention required. ICU/resus team alerted.\n<strong>Moderate (4–6)</strong> — Urgent but stable. Priority queue at ER.\n<em>Low (1–3)</em> — Non-emergency. Standard ER queue.` },
+    { q:['ambulance','status','en route','dispatched','eta'], a:`The ambulance dispatch panel shows real-time status:\n\n<em>Received</em> → Alert logged in dispatch system\n<em>Dispatched</em> → Ambulance assigned & departing\n<em>En Route</em> → Ambulance heading to your location\n<em>Arrived</em> → Team on scene\n\nETA is estimated based on distance and traffic.` },
+    { q:['doctor','physician','specialist','assigned'], a:`The <strong>Assigned Medical Team</strong> section shows doctors preparing for your arrival.\n\nStatus badges mean:\n<em>Preparing</em> — In hospital, reading your case\n<em>En Route</em> — Traveling to the hospital\n<em>Available</em> — Ready and waiting for you` },
+    { q:['hospital','bed','reserved','which hospital'], a:`Your chosen hospital is marked with ✓ in the hospitals section. The bed is <strong>reserved and held</strong> for you — staff have been notified and the department is preparing.\n\nBring your Reference Number on arrival.` },
+    { q:['bill','cost','estimate','payment'], a:`The estimated bill is a <em>pre-arrival estimate</em> based on your emergency type and typical hospital rates. Final charges depend on:\n\n• Actual treatment required\n• Medications and procedures\n• Duration of stay\n\nArrange payment/insurance at the hospital's billing counter.` },
+    { q:['new emergency','start over','another'], a:`To submit a new emergency, click <strong>"Submit New Emergency →"</strong> at the bottom of this page, or go back to the home page. Your current case will remain in the system for doctors to manage.` },
+    { q:['dashboard','doctor','view'], a:`The <strong>Doctor Dashboard</strong> shows all active cases in real time. Doctors use it to accept cases, track ambulance status, and mark cases complete.\n\nClick "View Doctor Dashboard →" to see your case from the medical team's perspective.` },
+  ],
+
+  dashboard: [
+    { q:['accept','how to accept','take case'], a:`To accept a case, click the <strong>🚑 Accept</strong> button on any card with <em>Bed Reserved</em> status.\n\nThis:\n• Triggers ambulance dispatch via the dispatch agent\n• Changes status to <em>En Route</em>\n• Notifies the patient's result page in real time` },
+    { q:['complete','finish','close case'], a:`Click <strong>✓ Complete</strong> on any <em>En Route</em> case when the patient has arrived and been admitted.\n\nThis:\n• Frees the reserved bed (bed counter decrements)\n• Changes status to <em>Completed</em>\n• Removes the case from active queue` },
+    { q:['filter','search','find case'], a:`Use the filter buttons to narrow cases:\n<em>All</em> — every active case\n<em>Reserved</em> — awaiting acceptance\n<em>En Route</em> — ambulance dispatched\n<em>Completed</em> — resolved cases\n<em>⚡ Critical</em> — severity 7–10 only\n\nOr use the <strong>search box</strong> to find by patient name, case ID, or location.` },
+    { q:['stats','numbers','count','total'], a:`The four stat cards at the top update live:\n\n<strong>Total Cases</strong> — all submissions today\n<strong>Bed Reserved</strong> — awaiting doctor acceptance\n<strong>En Route</strong> — ambulance dispatched, patient incoming\n<strong>Completed</strong> — resolved today` },
+    { q:['ambulance','dispatch','driver'], a:`Each case card shows the <strong>assigned ambulance</strong> (ID + driver name + plate number) and its current status.\n\nStatuses: <em>Dispatched → En Route → Arrived</em>\n\nThe ETA pill blinks red when under 10 minutes away.` },
+    { q:['severity','critical','urgent','priority'], a:`Cases are color-coded by severity:\n\n🔴 <strong>Critical</strong> — Red accent bar, card pulses. Accept immediately.\n🟡 <strong>Moderate</strong> — Amber accent bar. Urgent but stable.\n🟢 <em>Low</em> — Green accent bar. Non-critical.\n\nCritical cards animate continuously as a visual alert.` },
+    { q:['refresh','update','live','real time'], a:`The dashboard <strong>auto-refreshes every 30 seconds</strong>. New cases pop in with a cyan flash animation.\n\nClick the <em>↻ refresh button</em> in the top bar to force an immediate update. The timestamp shows last sync time.` },
+    { q:['specialist','department','doctor'], a:`Each case card shows the:\n• <em>Required Specialist</em> — e.g. Cardiologist, Trauma Surgeon\n• <em>Department</em> — e.g. ICU, ER, Neurology\n• <em>Assigned Doctor</em> — name, specialty, and preparation status\n\nThis helps the correct team prepare before the patient arrives.` },
+  ]
+};
+
+/* ═══════════════════════════════════════════════════════════
+   QUICK CHIPS PER PAGE
+═══════════════════════════════════════════════════════════ */
+const CHIPS = {
+  form:      ['How does this work?', 'What to type?', 'Location issues', 'Ambulance info', 'Cost estimate'],
+  result:    ['What\'s my ref #?', 'Ambulance status', 'Doctor assigned?', 'Which hospital?', 'Cost estimate'],
+  dashboard: ['How to accept?', 'Filter cases', 'Stats explained', 'Severity levels', 'Auto-refresh'],
+};
+
+/* ═══════════════════════════════════════════════════════════
+   WELCOME MESSAGE PER PAGE
+═══════════════════════════════════════════════════════════ */
+const WELCOME = {
+  form:      `👋 Hi! I'm your <strong>EmergencyAI Assistant</strong>.\n\nI can help you with:\n• Filling in the emergency form\n• Understanding triage & severity\n• Location & hospital questions\n• Ambulance & cost info\n\nWhat do you need help with?`,
+  result:    `👋 Hello! I'm here to help you understand your <strong>Emergency Summary</strong>.\n\nAsk me about your:\n• Reference number & case status\n• Ambulance dispatch & ETA\n• Assigned doctors & hospital\n• Estimated bill\n\nHow can I assist?`,
+  dashboard: `👋 Welcome, Doctor! I'm your <strong>Dashboard Assistant</strong>.\n\nI can help with:\n• Accepting & completing cases\n• Understanding severity levels\n• Filtering & searching cases\n• Dispatch & ambulance info\n\nWhat do you need?`,
+};
+
+/* ═══════════════════════════════════════════════════════════
+   FALLBACK ANSWERS for unmatched questions
+═══════════════════════════════════════════════════════════ */
+const FALLBACK = [
+  `I don't have a specific answer for that, but I'm trained on all EmergencyAI features.\n\nTry asking about:\n• <em>Triage & severity scores</em>\n• <em>Hospital bed reservation</em>\n• <em>Ambulance dispatch</em>\n• <em>Cost estimates</em>\n\nOr rephrase your question!`,
+  `That's outside my knowledge base for this page. Try one of the quick-action chips above for common questions, or ask about ambulances, hospitals, doctors, or costs.`,
+  `I'm specialized in EmergencyAI workflows. For that specific query, please contact hospital support directly.\n\nI <em>can</em> help with anything on this page — triage, dispatch, bed reservations, or doctor assignments.`,
+];
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let chatHistory = [];
+let isTyping    = false;
+
+/* ═══════════════════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════════════════ */
+const fab      = document.getElementById('chatFab');
+const win      = document.getElementById('chatWin');
+const msgsEl   = document.getElementById('chatMsgs');
+const inpEl    = document.getElementById('chatInp');
+const sendBtn  = document.getElementById('chatSend');
+const chipsEl  = document.getElementById('chatChips');
+const clearBtn = document.getElementById('chatClearBtn');
+const closeBtn = document.getElementById('chatCloseBtn');
+
+/* ═══════════════════════════════════════════════════════════
+   INIT CHIPS
+═══════════════════════════════════════════════════════════ */
+(CHIPS[PAGE] || CHIPS.form).forEach(txt => {
+  const c = document.createElement('button');
+  c.className   = 'cw-chip';
+  c.textContent = txt;
+  c.onclick     = () => sendMessage(txt);
+  chipsEl.appendChild(c);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   TOGGLE
+═══════════════════════════════════════════════════════════ */
+fab.onclick = () => {
+  const opening = !win.classList.contains('show');
+  fab.classList.toggle('open', opening);
+  win.classList.toggle('show', opening);
+  if (opening && msgsEl.children.length === 0) {
+    addBotMsg(WELCOME[PAGE] || WELCOME.form);
+  }
+  if (opening) setTimeout(() => inpEl.focus(), 350);
+};
+closeBtn.onclick = () => { fab.classList.remove('open'); win.classList.remove('show'); };
+clearBtn.onclick = () => {
+  chatHistory = [];
+  msgsEl.innerHTML = '';
+  addBotMsg(WELCOME[PAGE] || WELCOME.form);
+};
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+function nowTime(){
+  return new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addBotMsg(html, skipHistory){
+  const wrap = document.createElement('div');
+  wrap.className = 'cw-msg';
+  wrap.innerHTML = `
+    <div class="cw-mava b">🚨</div>
+    <div>
+      <div class="cw-bbl b">${html.replace(/\n/g,'<br>')}</div>
+      <span class="cw-time">${nowTime()}</span>
+    </div>`;
+  msgsEl.appendChild(wrap);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  if(!skipHistory) chatHistory.push({role:'assistant', content: html.replace(/<[^>]+>/g,'')});
+}
+
+function addUserMsg(text){
+  const wrap = document.createElement('div');
+  wrap.className = 'cw-msg u';
+  wrap.innerHTML = `
+    <div class="cw-mava u">👤</div>
+    <div>
+      <div class="cw-bbl u">${escHtml(text)}</div>
+      <span class="cw-time" style="text-align:right">${nowTime()}</span>
+    </div>`;
+  msgsEl.appendChild(wrap);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  chatHistory.push({role:'user', content: text});
+}
+
+function showTyping(){
+  const el = document.createElement('div');
+  el.className = 'cw-msg';
+  el.id = 'chatTyping';
+  el.innerHTML = `<div class="cw-mava b">🚨</div><div class="cw-bbl b"><div class="cw-typing"><span></span><span></span><span></span></div></div>`;
+  msgsEl.appendChild(el);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function hideTyping(){
+  const el = document.getElementById('chatTyping');
+  if(el) el.remove();
+}
+
+function escHtml(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KB MATCH — check predefined answers first
+═══════════════════════════════════════════════════════════ */
+function matchKB(text){
+  const lower = text.toLowerCase();
+  const kb     = KB[PAGE] || KB.form;
+  for(const entry of kb){
+    if(entry.q.some(kw => lower.includes(kw))) return entry.a;
+  }
+  // cross-page general matches
+  for(const page of Object.values(KB)){
+    for(const entry of page){
+      if(entry.q.some(kw => lower.includes(kw))) return entry.a;
+    }
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANTHROPIC API CALL
+═══════════════════════════════════════════════════════════ */
+async function callAnthropicAPI(userText){
+  const pageCtx = {
+    form:      'The user is on the Emergency Form page where they describe their emergency, get triaged, and select a hospital to reserve a bed.',
+    result:    'The user is on the Emergency Summary/Result page showing triage data, ambulance dispatch status, assigned doctors, and nearby hospitals.',
+    dashboard: 'The user is a doctor viewing the Doctor Dashboard which shows all active emergency cases with accept/complete actions.',
+  }[PAGE];
+
+  const systemPrompt = `You are EmergencyAI Assistant, an expert helper for the EmergencyAI rapid-response medical system built with Flask/Python backend.
+${pageCtx}
+
+Answer questions about: emergency forms, triage & severity scores, hospital bed reservation, ambulance dispatch, doctor assignment, cost estimates, and dashboard operations.
+Keep responses concise (under 120 words), practical, and use simple formatting.
+Never make up medical advice — stick to how the system works.
+If asked something unrelated, redirect politely to EmergencyAI features.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [
+        ...chatHistory.slice(-6).map(m => ({role: m.role, content: m.content})),
+        {role: 'user', content: userText}
+      ]
+    })
+  });
+
+  if(!response.ok) throw new Error('API error');
+  const data = await response.json();
+  return data.content?.[0]?.text || 'Sorry, I could not generate a response.';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SEND MESSAGE — KB first, API fallback
+═══════════════════════════════════════════════════════════ */
+async function sendMessage(text){
+  text = text.trim();
+  if(!text || isTyping) return;
+
+  addUserMsg(text);
+  inpEl.value = '';
+  inpEl.style.height = '';
+  isTyping = true;
+  sendBtn.disabled = true;
+
+  showTyping();
+
+  // Small realistic delay
+  await new Promise(r => setTimeout(r, 450 + Math.random()*400));
+
+  // 1. Try KB match
+  const kbAnswer = matchKB(text);
+  if(kbAnswer){
+    hideTyping();
+    addBotMsg(kbAnswer);
+    isTyping = false;
+    sendBtn.disabled = false;
+    return;
+  }
+
+  // 2. Try Anthropic API
+  try {
+    const apiAnswer = await callAnthropicAPI(text);
+    hideTyping();
+    addBotMsg(apiAnswer);
+  } catch(_){
+    // 3. Fallback
+    hideTyping();
+    const fb = FALLBACK[Math.floor(Math.random() * FALLBACK.length)];
+    addBotMsg(fb);
+  }
+
+  isTyping = false;
+  sendBtn.disabled = false;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUT HANDLERS
+═══════════════════════════════════════════════════════════ */
+sendBtn.onclick = () => sendMessage(inpEl.value);
+
+inpEl.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage(inpEl.value);
+  }
+});
+
+// Auto-resize textarea
+inpEl.addEventListener('input', () => {
+  inpEl.style.height = '';
+  inpEl.style.height = Math.min(inpEl.scrollHeight, 80) + 'px';
+});
+
+})();
+</script>
+
 </body>
 </html>
