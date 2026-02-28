@@ -92,10 +92,600 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 14px;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmergencyAI — Emergency Form</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --red:        #ff2d3b;
+            --red-glow:   rgba(255, 45, 59, 0.25);
+            --red-dim:    rgba(255, 45, 59, 0.08);
+            --bg:         #0a0b0d;
+            --surface:    #111318;
+            --surface-2:  #181c24;
+            --border:     rgba(255,255,255,0.07);
+            --border-hi:  rgba(255,255,255,0.14);
+            --text:       #f0f2f5;
+            --muted:      #6b7280;
+            --muted-2:    #4b5563;
+            --green:      #00e676;
+            --green-dim:  rgba(0,230,118,0.08);
+            --blue:       #3b82f6;
+            --blue-dim:   rgba(59,130,246,0.08);
+            --amber:      #f59e0b;
+            --amber-dim:  rgba(245,158,11,0.08);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 32px 16px 100px;
+            overflow-x: hidden;
+        }
+
+        /* ── Animated Background ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 20% -10%, rgba(255,45,59,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 40% at 80% 110%, rgba(59,130,246,0.07) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Pulse dot animations ── */
+        @keyframes pulseRing {
+            0%   { transform: scale(1);   opacity: 0.8; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes slideRight {
+            from { transform: scaleX(0); }
+            to   { transform: scaleX(1); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        @keyframes bounceIn {
+            0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            60%  { transform: scale(1.15) rotate(3deg); }
+            80%  { transform: scale(0.95) rotate(-1deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--red-glow); }
+            50%       { box-shadow: 0 0 40px rgba(255,45,59,0.4), 0 0 80px rgba(255,45,59,0.15); }
+        }
+        @keyframes confettiFall {
+            to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes lineProgress {
+            from { width: 0; }
+            to   { width: 100%; }
+        }
+
+        /* Staggered card entrance */
+        .animate-up {
+            opacity: 0;
+            animation: fadeUp 0.5s ease forwards;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            max-width: 620px;
+            margin: 0 auto 36px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+            animation: fadeUp 0.6s ease 0.1s forwards;
+            opacity: 0;
+        }
+
+        .logo-mark {
+            position: relative;
+            width: 48px; height: 48px;
+            border-radius: 14px;
+            background: var(--red);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 0 var(--red-glow);
+            animation: glow 2.5s ease-in-out infinite;
+        }
+        .logo-mark::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 18px;
+            border: 1.5px solid rgba(255,45,59,0.3);
+            animation: pulseRing 2s ease-out infinite;
+        }
+        .logo-mark::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 18px;
+            border: 1.5px solid rgba(255,45,59,0.2);
+            animation: pulseRing 2s ease-out 0.7s infinite;
+        }
+
+        .header-text { flex: 1; }
+        .page-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            letter-spacing: 0.08em;
+            color: var(--text);
+            line-height: 1;
+        }
+        .page-title span { color: var(--red); }
+        .page-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+
+        /* Live indicator */
+        .live-badge {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(0,230,118,0.08);
+            border: 1px solid rgba(0,230,118,0.2);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--green);
+            letter-spacing: 0.1em;
+        }
+        .live-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.4s ease-in-out infinite;
+        }
+
+        /* ── Step Pills ── */
+        .steps {
+            max-width: 620px;
+            margin: 0 auto 28px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+            animation: fadeUp 0.6s ease 0.2s forwards;
+            opacity: 0;
+        }
+
+        .step-pill {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 11px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            color: var(--muted);
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .step-pill .pill-num {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--surface-2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        .step-pill.active {
+            color: var(--red);
+            border-color: rgba(255,45,59,0.4);
+            background: var(--red-dim);
+            box-shadow: 0 0 20px rgba(255,45,59,0.1);
+        }
+        .step-pill.active .pill-num {
+            background: var(--red);
+            color: white;
+            border-color: var(--red);
+            box-shadow: 0 0 10px var(--red-glow);
+        }
+        .step-pill.done {
+            color: var(--green);
+            border-color: rgba(0,230,118,0.3);
+            background: var(--green-dim);
+        }
+        .step-pill.done .pill-num {
+            background: var(--green);
+            color: #0a0b0d;
+            border-color: var(--green);
+        }
+        .step-connector {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        .step-connector::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--red), transparent);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.6s ease;
+        }
+        .connector-done::after { transform: scaleX(1); }
+
+        /* ── Container ── */
+        .container { max-width: 620px; margin: 0 auto; position: relative; z-index: 1; }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+        }
+        .card:hover {
+            box-shadow: 0 12px 50px rgba(0,0,0,0.5);
+        }
+
+        .card-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            font-size: 18px;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            color: var(--text);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-title .icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: var(--red-dim);
+            border: 1px solid rgba(255,45,59,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px;
+        }
+
+        /* ── Form Elements ── */
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 16px 18px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            color: var(--text);
+            resize: none;
+            min-height: 90px;
+            transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+            background: var(--surface-2);
+            line-height: 1.6;
+        }
+        .form-textarea:focus {
+            outline: none;
+            border-color: rgba(255,45,59,0.5);
+            box-shadow: 0 0 0 3px rgba(255,45,59,0.08), 0 0 20px rgba(255,45,59,0.05);
+            background: #13171f;
+        }
+        .form-textarea::placeholder { color: var(--muted-2); }
+
+        /* ── Location Box ── */
+        #locBox {
+            margin-top: 14px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+        }
+        #locBox.loc-ready  { 
+            border-color: rgba(0,230,118,0.3); 
+            background: rgba(0,230,118,0.04);
+            box-shadow: 0 0 20px rgba(0,230,118,0.05);
+        }
+        #locBox.loc-error  { 
+            border-color: rgba(245,158,11,0.3); 
+            background: rgba(245,158,11,0.04); 
+        }
+        .loc-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .loc-icon { font-size: 20px; flex-shrink: 0; }
+        .loc-text { flex: 1; min-width: 0; }
+        .loc-header { font-weight: 600; color: var(--text); font-size: 13px; }
+        .loc-details { 
+            color: var(--muted); 
+            font-size: 11px; 
+            margin-top: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        #retryLocBtn {
+            font-size: 16px;
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            color: var(--muted);
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #retryLocBtn:hover { border-color: var(--red); color: var(--red); transform: rotate(-45deg); }
+
+        .manual-label {
+            font-size: 11px; font-weight: 600;
+            color: var(--muted); margin: 12px 0 8px;
+            letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .manual-row { display: flex; gap: 8px; }
+        .manual-row input {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--surface);
+            color: var(--text);
+            min-width: 0;
+            transition: border-color 0.2s;
+        }
+        .manual-row input:focus { outline: none; border-color: var(--blue); }
+        .manual-row input::placeholder { color: var(--muted-2); }
+        #manualLocBtn {
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: none;
+            background: var(--blue);
+            color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px; font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            letter-spacing: 0.05em;
+        }
+        #manualLocBtn:hover { background: #2563eb; transform: translateY(-1px); }
+
+        /* ── Submit Button ── */
+        #submitBtn {
+            width: 100%;
+            margin-top: 18px;
+            padding: 17px;
+            background: var(--surface-2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 0.1em;
+            cursor: not-allowed;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        #submitBtn.btn-ready {
+            background: var(--red);
+            color: white;
+            border-color: var(--red);
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(255,45,59,0.3), 0 0 60px rgba(255,45,59,0.1);
+        }
+        #submitBtn.btn-ready::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; right: -100%; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            animation: shimmer 2.5s linear infinite;
+            background-size: 200% auto;
+        }
+        #submitBtn.btn-ready:hover {
+            background: #e8001a;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 40px rgba(255,45,59,0.4), 0 0 80px rgba(255,45,59,0.15);
+        }
+        #submitBtn.btn-ready:active { transform: translateY(0); }
+        #submitBtn:disabled { opacity: 0.5; }
+
+        /* ── Loader ── */
+        #loader {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--surface);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+        }
+        .loader-inner {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 20px;
+        }
+        .pulse-ring-wrap {
+            position: relative;
+            width: 60px; height: 60px;
+        }
+        .pulse-ring {
+            width: 60px; height: 60px;
+            border: 2px solid rgba(255,45,59,0.15);
+            border-top-color: var(--red);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        .pulse-ring-inner {
+            position: absolute;
+            inset: 10px;
+            border: 2px solid rgba(255,45,59,0.1);
+            border-bottom-color: rgba(255,45,59,0.5);
+            border-radius: 50%;
+            animation: spin 1.4s linear infinite reverse;
+        }
+        .loader-inner .loader-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+        }
+        .loader-inner .loader-subtext {
+            font-size: 11px;
+            color: var(--muted-2);
+            font-family: 'JetBrains Mono', monospace;
+            animation: blink 1.8s ease-in-out infinite;
+        }
+
+        /* ── Triage ── */
+        .triage-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .triage-item {
+            background: var(--surface-2);
+            border-radius: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .triage-item:hover { border-color: var(--border-hi); }
+        .triage-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        .triage-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .severity-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .score-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            font-size: 20px;
+            letter-spacing: 0.05em;
+        }
+        .severity-bar-wrap {
+            margin-top: 10px;
+            height: 3px;
+            background: var(--surface-2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .severity-bar {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+            transition: width 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .badge-critical { background: rgba(255,45,59,0.15); color: var(--red); border: 1px solid rgba(255,45,59,0.3); }
+        .badge-moderate { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+        .badge-low      { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+
+        /* ── Hospitals ── */
+        .hospital-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 18px;
             margin-top: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+<<<<<<< HEAD
         }
 
         .hospital-card .info { font-size: 14px; }
@@ -132,10 +722,219 @@
             padding: 16px;
             font-size: 14px;
             line-height: 1.8;
+=======
+            transition: all 0.25s ease;
+            animation: fadeUp 0.4s ease forwards;
+            opacity: 0;
+            background: var(--surface-2);
+            cursor: pointer;
+        }
+        .hospital-card:hover { 
+            border-color: rgba(59,130,246,0.4); 
+            box-shadow: 0 4px 20px rgba(59,130,246,0.08);
+            transform: translateX(2px);
+        }
+        .hospital-card.selected {
+            border-color: rgba(59,130,246,0.5);
+            background: var(--blue-dim);
+            box-shadow: 0 0 30px rgba(59,130,246,0.1);
+        }
+        .hospital-card.dimmed { opacity: 0.25; pointer-events: none; }
+        .hosp-info { display: flex; flex-direction: column; gap: 4px; }
+        .hosp-name { font-weight: 600; font-size: 14px; color: var(--text); }
+        .hosp-dist { 
+            font-size: 11px; 
+            color: var(--muted); 
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .btn-select {
+            padding: 9px 20px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px; font-weight: 700;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .btn-select:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,0.3); }
+        .btn-select:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .no-data { color: var(--muted); font-size: 14px; padding: 14px 0; }
+
+        /* ── Confirmation ── */
+        .confirm-icon {
+            font-size: 56px;
+            text-align: center;
+            margin-bottom: 14px;
+            animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .confirm-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            font-size: 28px;
+            letter-spacing: 0.08em;
+            text-align: center;
+            color: var(--green);
+            margin-bottom: 24px;
+            text-shadow: 0 0 40px rgba(0,230,118,0.3);
+        }
+        .confirm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .confirm-item {
+            background: var(--surface-2);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .confirm-label {
+            display: block;
+            font-size: 10px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 5px;
+        }
+        .confirm-val {
+            font-family: 'Bebas Neue', sans-serif;
+            font-weight: 400;
+            font-size: 22px;
+            letter-spacing: 0.05em;
+        }
+        .confirm-note {
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .confirm-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 24px;
+        }
+        .confirm-links a {
+            display: block;
+            text-align: center;
+            padding: 13px;
+            border-radius: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .link-dash {
+            background: var(--blue-dim);
+            color: var(--blue);
+            border: 1px solid rgba(59,130,246,0.25);
+        }
+        .link-dash:hover { background: var(--blue); color: white; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
+        .link-result {
+            background: var(--surface-2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .link-result:hover { border-color: var(--border-hi); color: var(--text); }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--surface-2);
+            color: var(--text);
+            padding: 13px 22px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-hi);
+        }
+        .toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-error   { background: rgba(255,45,59,0.15); border-color: rgba(255,45,59,0.3); color: #ff6b75; }
+        .toast-warn    { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: var(--amber); }
+        .toast-success { background: rgba(0,230,118,0.1); border-color: rgba(0,230,118,0.25); color: var(--green); }
+        .toast-info    { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: var(--blue); }
+
+        /* ── Session Restore Banner ── */
+        .restore-banner {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: var(--blue-dim);
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 14px;
+            padding: 13px 18px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--blue);
+            animation: fadeUp 0.4s ease forwards;
+            position: relative; z-index: 1;
+        }
+        .restore-banner button {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(59,130,246,0.4);
+            background: transparent;
+            color: var(--blue);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11px; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .restore-banner button:hover { background: var(--blue); color: white; }
+
+        /* ── Confetti ── */
+        .confetti-piece {
+            position: fixed; top: -10px;
+            pointer-events: none;
+            animation: confettiFall linear forwards;
+        }
+
+        /* ── Divider ── */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 18px 0;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 480px) {
+            .triage-grid { grid-template-columns: 1fr; }
+            .confirm-grid { grid-template-columns: 1fr; }
+            .restore-banner { flex-direction: column; align-items: flex-start; }
+            .steps { gap: 4px; }
+            .step-pill { padding: 6px 10px; font-size: 10px; }
+>>>>>>> 351f9ee (Initial commit)
         }
     </style>
 </head>
 <body>
+<<<<<<< HEAD
 <div class="container">
 
     <h2>🚨 Emergency Response System</h2>
@@ -177,10 +976,105 @@
         <a href="/doctor-dashboard" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#2980b9;">
             View Doctor Dashboard →
         </a>
+=======
+
+<header class="page-header">
+    <div class="logo-mark">🚨</div>
+    <div class="header-text">
+        <div class="page-title"><span>Emergency</span>AI</div>
+        <div class="page-subtitle">Rapid Response System</div>
+    </div>
+    <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+</header>
+
+<div class="steps">
+    <div class="step-pill active" id="pill1"><span class="pill-num">1</span> Triage</div>
+    <div class="step-connector" id="conn1"></div>
+    <div class="step-pill" id="pill2"><span class="pill-num">2</span> Hospital</div>
+    <div class="step-connector" id="conn2"></div>
+    <div class="step-pill" id="pill3"><span class="pill-num">3</span> Confirmed</div>
+</div>
+
+<div class="container">
+
+    <!-- STEP 1: Form -->
+    <div class="card animate-up" id="formSection" style="animation-delay:0.3s">
+        <div class="card-title">
+            <div class="icon">📋</div>
+            Describe the Emergency
+        </div>
+        <label class="form-label" for="message">What's happening?</label>
+        <textarea class="form-textarea" id="message" rows="3"
+                  placeholder="e.g. Severe chest pain and difficulty breathing, patient is 55 years old…"></textarea>
+
+        <div id="locBox">
+            <div class="loc-row">
+                <span class="loc-icon" id="locIcon">⏳</span>
+                <div class="loc-text">
+                    <div class="loc-header"><span id="locStatus">Detecting your location…</span></div>
+                    <div class="loc-details" id="locDetails">Allow location access when prompted</div>
+                </div>
+                <button id="retryLocBtn" type="button" title="Retry">↺</button>
+            </div>
+            <div id="manualLocWrap" class="hidden">
+                <div class="manual-label">📌 Or enter coordinates manually</div>
+                <div class="manual-row">
+                    <input type="number" id="manualLat" placeholder="Latitude  e.g. 29.9457" step="any">
+                    <input type="number" id="manualLng" placeholder="Longitude e.g. 77.9801" step="any">
+                    <button id="manualLocBtn" type="button">Use</button>
+                </div>
+            </div>
+        </div>
+
+        <button id="submitBtn" onclick="sendEmergency()">
+            Send Emergency Alert →
+        </button>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="hidden">
+        <div class="loader-inner">
+            <div class="pulse-ring-wrap">
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring-inner"></div>
+            </div>
+            <span class="loader-text">Processing Emergency Alert</span>
+            <span class="loader-subtext">Analyzing · Routing · Connecting…</span>
+        </div>
+    </div>
+
+    <!-- STEP 2: Triage -->
+    <div class="card hidden" id="triageSection">
+        <div class="card-title">
+            <div class="icon">🩺</div>
+            Triage Assessment
+        </div>
+        <div id="triageBox"></div>
+    </div>
+
+    <!-- STEP 2b: Hospitals -->
+    <div class="card hidden" id="hospitalSection">
+        <div class="card-title">
+            <div class="icon">🏥</div>
+            Nearby Hospitals
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Select a hospital to reserve a bed</p>
+        <div id="hospitalList"></div>
+    </div>
+
+    <!-- STEP 3: Confirmation -->
+    <div class="card hidden" id="confirmSection">
+        <div id="confirmMsg"></div>
+        <div class="confirm-links">
+            <a href="/doctor-dashboard" class="link-dash">View Doctor Dashboard →</a>
+            <a href="/result" class="link-result">View Full Summary</a>
+        </div>
+>>>>>>> 351f9ee (Initial commit)
     </div>
 
 </div>
 
+<<<<<<< HEAD
 <script>
     let triageData = null;
     let locationData = null;
@@ -320,6 +1214,444 @@
             document.querySelectorAll(".btn-select").forEach(b => b.disabled = false);
         }
     }
+=======
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Scripts (same logic, wired to new DOM) -->
+<script>
+/* ── State ── */
+let state = {
+  lat: null, lng: null, locReady: false,
+  triageData: null, locationData: null,
+  ambulance: null, doctorStatus: null, expectedBill: null
+};
+
+/* ═══════════════════════════════════════════
+   GEOLOCATION
+═══════════════════════════════════════════ */
+function getLocation() {
+  const locBox  = document.getElementById('locBox');
+  const locIcon = document.getElementById('locIcon');
+  const locStat = document.getElementById('locStatus');
+  const locDet  = document.getElementById('locDetails');
+  const manWrap = document.getElementById('manualLocWrap');
+
+  locBox.className = '';
+  locIcon.textContent = '⏳';
+  locStat.textContent = 'Detecting your location…';
+  locDet.textContent  = 'Allow location access when prompted';
+
+  if (!navigator.geolocation) {
+    locIcon.textContent = '⚠️';
+    locStat.textContent = 'Geolocation not supported';
+    locDet.textContent  = 'Enter coordinates manually below';
+    locBox.className = 'loc-error';
+    manWrap.classList.remove('hidden');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      state.lat = pos.coords.latitude;
+      state.lng = pos.coords.longitude;
+      state.locReady = true;
+      locBox.className = 'loc-ready';
+      locIcon.textContent = '📍';
+      locStat.textContent = 'Location acquired';
+      locDet.textContent  = `${state.lat.toFixed(5)}, ${state.lng.toFixed(5)}`;
+      checkReady();
+    },
+    () => {
+      locBox.className = 'loc-error';
+      locIcon.textContent = '⚠️';
+      locStat.textContent = 'Location access denied';
+      locDet.textContent  = 'Enter coordinates manually below';
+      manWrap.classList.remove('hidden');
+    },
+    { timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+document.getElementById('retryLocBtn').onclick = getLocation;
+
+document.getElementById('manualLocBtn').onclick = function () {
+  const lat = parseFloat(document.getElementById('manualLat').value);
+  const lng = parseFloat(document.getElementById('manualLng').value);
+  if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    showToast('⚠️ Enter valid lat/lng coordinates', 'warn'); return;
+  }
+  state.lat = lat; state.lng = lng; state.locReady = true;
+  const locBox = document.getElementById('locBox');
+  locBox.className = 'loc-ready';
+  document.getElementById('locIcon').textContent   = '📌';
+  document.getElementById('locStatus').textContent = 'Manual coordinates set';
+  document.getElementById('locDetails').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('manualLocWrap').classList.add('hidden');
+  checkReady();
+};
+
+/* ═══════════════════════════════════════════
+   FORM READINESS
+═══════════════════════════════════════════ */
+document.getElementById('message').addEventListener('input', checkReady);
+
+function checkReady() {
+  const msg = document.getElementById('message').value.trim();
+  const btn = document.getElementById('submitBtn');
+  if (msg.length >= 10 && state.locReady) {
+    btn.classList.add('btn-ready');
+    btn.disabled = false;
+  } else {
+    btn.classList.remove('btn-ready');
+    btn.disabled = true;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   STEP 1 — POST /emergency
+   app.py expects: { message, lat, lng }
+   returns: { triage, location, hospitals, ambulance_status, doctor_status, expected_bill }
+═══════════════════════════════════════════ */
+function sendEmergency() {
+  const msg = document.getElementById('message').value.trim();
+  if (!msg || !state.locReady) return;
+
+  document.getElementById('formSection').classList.add('hidden');
+  const loader = document.getElementById('loader');
+  loader.classList.remove('hidden');
+  loader.style.animation = 'fadeUp 0.4s ease forwards';
+
+  fetch('/emergency', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: msg, lat: state.lat, lng: state.lng })
+  })
+  .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+    loader.classList.add('hidden');
+
+    // Store all response data in state for later use
+    state.triageData   = data.triage;
+    state.locationData = data.location;
+    state.ambulance    = data.ambulance_status;
+    state.doctorStatus = data.doctor_status;
+    state.expectedBill = data.expected_bill;
+
+    showTriage(data.triage);
+    showHospitals(data.hospitals || []);
+    setPill(2);
+
+    // Persist to sessionStorage so page refresh can restore state
+    sessionStorage.setItem('emergencySession', JSON.stringify({
+      msg,
+      lat: state.lat, lng: state.lng,
+      triage:           data.triage,
+      location:         data.location,
+      hospitals:        data.hospitals,
+      ambulance_status: data.ambulance_status,
+      doctor_status:    data.doctor_status,
+      expected_bill:    data.expected_bill
+    }));
+  })
+  .catch(err => {
+    loader.classList.add('hidden');
+    document.getElementById('formSection').classList.remove('hidden');
+    showToast('❌ ' + (err.message || 'Server error'), 'error');
+  });
+}
+
+/* ═══════════════════════════════════════════
+   STEP PILLS
+═══════════════════════════════════════════ */
+function setPill(step) {
+  for (let i = 1; i <= 3; i++) {
+    const p = document.getElementById('pill' + i);
+    p.className = 'step-pill' + (i < step ? ' done' : i === step ? ' active' : '');
+    if (i < step && i <= 2) {
+      document.getElementById('conn' + i).classList.add('connector-done');
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   TRIAGE DISPLAY
+═══════════════════════════════════════════ */
+function showTriage(t) {
+  const sec = document.getElementById('triageSection');
+  sec.classList.remove('hidden');
+  sec.style.animation = 'fadeUp 0.5s ease forwards';
+
+  const score    = t.severity_score ?? 0;
+  const level    = (t.severity_level ?? 'unknown').toLowerCase();
+  const badgeCls = level.includes('critical') ? 'badge-critical'
+                 : level.includes('moderate') ? 'badge-moderate' : 'badge-low';
+  const color    = level.includes('critical') ? 'var(--red)'
+                 : level.includes('moderate') ? 'var(--amber)' : 'var(--green)';
+
+  const items = [
+    { label: 'Severity Level',  value: `<span class="badge ${badgeCls}">${(t.severity_level||'').toUpperCase()}</span>` },
+    { label: 'Severity Score',  value: `<div class="severity-row"><span class="score-num" style="color:${color}">${score}/10</span></div><div class="severity-bar-wrap"><div class="severity-bar" id="sevBar" style="width:0%"></div></div>` },
+    { label: 'Emergency Type',  value: t.emergency_type      ?? t.condition ?? '—' },
+    { label: 'Priority',        value: t.priority            ?? '—' },
+  ];
+  if (t.required_specialist)      items.push({ label: 'Specialist',  value: t.required_specialist });
+  if (t.recommended_department)   items.push({ label: 'Department',  value: t.recommended_department });
+  if (t.estimated_arrival)        items.push({ label: 'Est. ETA',    value: t.estimated_arrival + ' min' });
+
+  document.getElementById('triageBox').innerHTML = `
+    <div class="triage-grid">
+      ${items.map(i => `<div class="triage-item"><span class="triage-label">${i.label}</span><div class="triage-value">${i.value}</div></div>`).join('')}
+    </div>
+    ${t.notes ? `<div class="section-divider"></div><p style="font-size:13px;color:var(--muted);line-height:1.7">${t.notes}</p>` : ''}
+  `;
+  setTimeout(() => {
+    const bar = document.getElementById('sevBar');
+    if (bar) bar.style.width = (score * 10) + '%';
+  }, 300);
+}
+
+/* ═══════════════════════════════════════════
+   HOSPITAL DISPLAY
+   app.py hospital objects have: name, distance_km or distance_meters, beds_available
+═══════════════════════════════════════════ */
+function showHospitals(list) {
+  const sec = document.getElementById('hospitalSection');
+  sec.classList.remove('hidden');
+  sec.style.animation = 'fadeUp 0.5s ease 0.1s forwards';
+
+  const container = document.getElementById('hospitalList');
+  if (!list || !list.length) {
+    container.innerHTML = '<div class="no-data">No hospitals found nearby.</div>';
+    return;
+  }
+  container.innerHTML = list.map((h, i) => {
+    const safeName = (h.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const distKm   = h.distance_km       ? Number(h.distance_km).toFixed(1)
+                   : h.distance_meters   ? (h.distance_meters / 1000).toFixed(1) : null;
+    const distTxt  = distKm ? distKm + ' km away' : 'Distance unavailable';
+    const beds     = h.beds_available ?? h.available_beds ?? '?';
+    return `
+    <div class="hospital-card" style="animation-delay:${i * 0.08}s" id="hosp${i}">
+      <div class="hosp-info">
+        <div class="hosp-name">${h.name}</div>
+        <div class="hosp-dist">📍 ${distTxt} · ${beds} beds available</div>
+      </div>
+      <button class="btn-select" id="hospBtn${i}" onclick="selectHospital(${i}, '${safeName}')">Reserve</button>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   STEP 2 — POST /select-hospital
+   app.py expects: { hospital_name, triage, location }
+   returns: { message, case_id, hospital, available_beds }
+═══════════════════════════════════════════ */
+function selectHospital(idx, name) {
+  // Disable all cards/buttons while processing
+  document.querySelectorAll('.hospital-card').forEach((c, i) => {
+    c.className = 'hospital-card' + (i === idx ? ' selected' : ' dimmed');
+  });
+  document.querySelectorAll('.btn-select').forEach((b, i) => {
+    b.textContent = i === idx ? 'Reserving…' : 'Reserve';
+    b.disabled = true;
+  });
+
+  fetch('/select-hospital', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      hospital_name: name,
+      triage:        state.triageData,
+      location:      state.locationData
+    })
+  })
+  .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+
+    // Mark as confirmed in button
+    document.querySelector(`#hospBtn${idx}`).textContent = '✓ Reserved';
+
+    showConfirmation(data, name);
+    setPill(3);
+    launchConfetti();
+
+    // Save full result to sessionStorage for emergency_result.html
+    sessionStorage.setItem('emergencyResult', JSON.stringify({
+      reference_number: `EMG-${data.case_id}`,
+      triage:           state.triageData,
+      location:         state.locationData,
+      location_coords:  state.lat && state.lng ? `${state.lat.toFixed(5)}, ${state.lng.toFixed(5)}` : '',
+      ambulance_status: state.ambulance,
+      doctor_status:    state.doctorStatus,
+      expected_bill:    state.expectedBill,
+      hospitals:        JSON.parse(sessionStorage.getItem('emergencySession') || '{}').hospitals || []
+    }));
+    sessionStorage.removeItem('emergencySession');
+  })
+  .catch(err => {
+    showToast('❌ Reservation failed: ' + err.message, 'error');
+    document.querySelectorAll('.hospital-card').forEach(c => { c.className = 'hospital-card'; });
+    document.querySelectorAll('.btn-select').forEach(b => { b.textContent = 'Reserve'; b.disabled = false; });
+  });
+}
+
+/* ═══════════════════════════════════════════
+   CONFIRMATION PANEL
+   data from /select-hospital: { case_id, hospital, available_beds }
+═══════════════════════════════════════════ */
+function showConfirmation(data, hospName) {
+  const sec = document.getElementById('confirmSection');
+  sec.classList.remove('hidden');
+  sec.style.animation = 'fadeUp 0.5s ease forwards';
+  document.getElementById('triageSection').classList.add('hidden');
+  document.getElementById('hospitalSection').classList.add('hidden');
+
+  const eta  = state.triageData?.estimated_arrival
+                 ? state.triageData.estimated_arrival + ' min' : 'N/A';
+  const ref  = data.case_id ? `EMG-${data.case_id}` : '—';
+  const dept = state.triageData?.recommended_department ?? 'ER';
+
+  document.getElementById('confirmMsg').innerHTML = `
+    <div class="confirm-icon">✅</div>
+    <div class="confirm-title">Bed Reserved Successfully</div>
+    <div class="confirm-grid">
+      <div class="confirm-item">
+        <span class="confirm-label">Hospital</span>
+        <div class="confirm-val" style="font-size:14px;font-family:'Space Grotesk',sans-serif;font-weight:700">${hospName}</div>
+      </div>
+      <div class="confirm-item">
+        <span class="confirm-label">ETA</span>
+        <div class="confirm-val" style="color:var(--green)">${eta}</div>
+      </div>
+      <div class="confirm-item">
+        <span class="confirm-label">Ref #</span>
+        <div class="confirm-val" style="font-size:13px;font-family:'JetBrains Mono',monospace">${ref}</div>
+      </div>
+    </div>
+    <p class="confirm-note">Your emergency has been logged and a bed is reserved in the
+      <strong style="color:var(--text)">${dept}</strong> department.
+      Medical staff have been notified and are preparing for your arrival.</p>
+  `;
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  clearTimeout(toastTimer);
+  t.textContent = msg;
+  t.className   = 'toast' + (type ? ' toast-' + type : '');
+  void t.offsetWidth;
+  t.classList.add('toast-show');
+  toastTimer = setTimeout(() => t.classList.remove('toast-show'), 3500);
+}
+
+/* ═══════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════ */
+function launchConfetti() {
+  const colors = ['#ff2d3b','#00e676','#3b82f6','#f59e0b','#fff'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const size = Math.random() * 8 + 5;
+    el.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+      opacity:${Math.random()*0.7+0.3};
+      animation-duration:${Math.random()*2+2}s;
+      animation-delay:${Math.random()*0.8}s;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SESSION RESTORE
+   1. Check server session via GET /session-state (survives hard refresh)
+   2. Fall back to sessionStorage (survives tab navigation)
+═══════════════════════════════════════════ */
+function restoreFromData(s) {
+  if (!s || !s.triage || !s.hospitals) return false;
+  document.getElementById('message').value = s.msg || '';
+  state.lat          = s.lat;
+  state.lng          = s.lng;
+  state.locReady     = true;
+  state.triageData   = s.triage;
+  state.locationData = s.location;
+  state.ambulance    = s.ambulance_status;
+  state.doctorStatus = s.doctor_status;
+  state.expectedBill = s.expected_bill;
+
+  if (s.lat && s.lng) {
+    const lb = document.getElementById('locBox');
+    lb.className = 'loc-ready';
+    document.getElementById('locIcon').textContent    = '📍';
+    document.getElementById('locStatus').textContent  = 'Location restored';
+    document.getElementById('locDetails').textContent = `${Number(s.lat).toFixed(5)}, ${Number(s.lng).toFixed(5)}`;
+  }
+  showTriage(s.triage);
+  showHospitals(s.hospitals);
+  setPill(2);
+  document.getElementById('formSection').classList.add('hidden');
+  return true;
+}
+
+(async function initSession() {
+  // 1. Try server-side session first
+  try {
+    const resp = await fetch('/session-state');
+    if (resp.ok) {
+      const srv = await resp.json();
+      if (srv.emergency && srv.emergency.triage) {
+        const em = srv.emergency;
+        // If booking already exists, just show confirmation screen
+        if (srv.booking) {
+          state.triageData   = em.triage;
+          state.locationData = em.location;
+          state.ambulance    = em.ambulance_status;
+          state.doctorStatus = em.doctor_status;
+          state.expectedBill = em.expected_bill;
+          document.getElementById('formSection').classList.add('hidden');
+          showConfirmation({ case_id: srv.booking.case_id }, srv.booking.hospital_name);
+          setPill(3);
+          return;
+        }
+        // Triage done but no booking yet
+        if (restoreFromData({ triage: em.triage, location: em.location, hospitals: em.hospitals,
+          ambulance_status: em.ambulance_status, doctor_status: em.doctor_status,
+          expected_bill: em.expected_bill, lat: null, lng: null })) return;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Fall back to sessionStorage
+  const saved = sessionStorage.getItem('emergencySession');
+  if (!saved) return;
+  try {
+    const s = JSON.parse(saved);
+    if (!s.triage || !s.hospitals) return;
+    const banner = document.createElement('div');
+    banner.className = 'restore-banner';
+    banner.innerHTML = `
+      <span>📂 You have an active emergency session</span>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button id="restoreYes">Restore</button>
+        <button id="restoreNo" style="border-color:transparent;opacity:0.6">Dismiss</button>
+      </div>`;
+    document.querySelector('.container').prepend(banner);
+    document.getElementById('restoreYes').onclick = () => { banner.remove(); restoreFromData(s); };
+    document.getElementById('restoreNo').onclick  = () => { sessionStorage.removeItem('emergencySession'); banner.remove(); };
+  } catch (_) { sessionStorage.removeItem('emergencySession'); }
+})();
+
+/* ── Init ── */
+getLocation();
+>>>>>>> 351f9ee (Initial commit)
 </script>
 </body>
 </html>

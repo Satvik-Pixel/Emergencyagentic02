@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EmergencyAI — Rapid Care Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red:       #e63946;
+  --red-glow:  rgba(230,57,70,0.35);
+  --red-faint: rgba(230,57,70,0.08);
+  --bg:        #060910;
+  --bg2:       #0b0f1a;
+  --surface:   #111827;
+  --border:    rgba(255,255,255,0.07);
+  --text:      #f0f4ff;
+  --muted:     #7b8599;
+  --blue:      #3b7bff;
+  --cyan:      #00d4ff;
+  --green:     #00e676;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── Custom Cursor ── */
+.cursor {
+  position: fixed; top: 0; left: 0;
+  width: 12px; height: 12px;
+  background: var(--red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s, height 0.2s, background 0.2s;
+  mix-blend-mode: screen;
+}
+.cursor-ring {
+  position: fixed; top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(230,57,70,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: left 0.1s ease, top 0.1s ease, width 0.25s, height 0.25s;
+}
+
+/* ── Canvas ── */
+#particleCanvas {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Noise Grain overlay ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Ambient blobs ── */
+.blob { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+.blob-1 { width: 700px; height: 500px; background: rgba(230,57,70,0.11); top: -150px; right: -100px; animation: blobDrift 18s ease-in-out infinite alternate; }
+.blob-2 { width: 450px; height: 450px; background: rgba(59,123,255,0.08); bottom: 5%; left: -80px; animation: blobDrift 24s ease-in-out infinite alternate-reverse; }
+.blob-3 { width: 350px; height: 350px; background: rgba(0,212,255,0.06); top: 45%; right: 15%; animation: blobDrift 20s ease-in-out 4s infinite alternate; }
+@keyframes blobDrift {
+  0%   { transform: translate(0,0) scale(1); }
+  100% { transform: translate(50px, 70px) scale(1.12); }
+}
+
+/* ═══════════ LAYOUT ═══════════ */
+.wrapper { position: relative; z-index: 2; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 18px 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, rgba(6,9,16,0.96) 0%, transparent 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  opacity: 0;
+  animation: navIn 0.9s 0.1s ease forwards;
+}
+@keyframes navIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-emblem {
+  width: 42px; height: 42px;
+  background: var(--red);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 28px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+  animation: emblemPulse 3s ease-in-out infinite;
+}
+@keyframes emblemPulse {
+  0%,100% { box-shadow: 0 0 28px var(--red-glow); }
+  50%      { box-shadow: 0 0 52px rgba(230,57,70,0.55), 0 0 100px rgba(230,57,70,0.2); }
+}
+.nav-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: 0.08em; color: var(--text);
+}
+.nav-name span { color: var(--red); }
+.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-link {
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  text-decoration: none; padding: 8px 16px; border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.nav-cta {
+  font-size: 13px; font-weight: 600; color: white;
+  text-decoration: none; padding: 10px 22px;
+  background: var(--red); border-radius: 9px;
+  box-shadow: 0 4px 18px var(--red-glow);
+  transition: all 0.25s; letter-spacing: 0.01em;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.nav-cta:hover { background: #ff3a4a; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(230,57,70,0.55); }
+
+/* ═══════════ HERO ═══════════ */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 130px 24px 100px;
+  position: relative; overflow: hidden;
+}
+
+/* Horizontal scan line */
+.hero::before {
+  content: '';
+  position: absolute; top: 0; left: -120%;
+  width: 70%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(230,57,70,0.025), transparent);
+  animation: scanLine 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes scanLine { to { left: 220%; } }
+
+/* Hero grid lines */
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 0%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 0%, transparent 100%);
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 18px;
+  border: 1px solid rgba(230,57,70,0.3);
+  background: rgba(230,57,70,0.06);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  color: #ff7b86; letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 32px;
+  opacity: 0; animation: fadeUp 0.7s 0.4s ease forwards;
+}
+.badge-dot {
+  width: 7px; height: 7px; background: var(--red); border-radius: 50%;
+  box-shadow: 0 0 8px var(--red);
+  animation: dotBlink 1.6s ease-in-out infinite;
+}
+@keyframes dotBlink { 0%,100% { opacity:1; box-shadow: 0 0 8px var(--red); } 50% { opacity:0.3; box-shadow: none; } }
+
+.hero-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 13vw, 164px);
+  line-height: 0.88;
+  letter-spacing: 0.025em;
+  margin-bottom: 12px;
+  opacity: 0; animation: fadeUp 0.8s 0.55s ease forwards;
+}
+.hero-h1 .line-white { display: block; color: var(--text); }
+.hero-h1 .line-red {
+  display: block;
+  background: linear-gradient(120deg, #c0392b 0%, #ff6b7a 45%, #e63946 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: gradShift 5s ease-in-out infinite, fadeUp 0.8s 0.55s ease forwards;
+}
+@keyframes gradShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+.hero-sub {
+  max-width: 580px;
+  font-size: 19px; font-weight: 400; color: var(--muted);
+  line-height: 1.8; margin: 28px auto 44px;
+  opacity: 0; animation: fadeUp 0.8s 0.72s ease forwards;
+}
+.hero-sub strong { color: var(--text); font-weight: 600; }
+
+.hero-actions {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  opacity: 0; animation: fadeUp 0.8s 0.88s ease forwards;
+}
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 17px 36px; background: var(--red); color: white;
+  text-decoration: none; border-radius: 12px;
+  font-weight: 700; font-size: 16px; letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px var(--red-glow);
+  transition: all 0.3s; position: relative; overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute; top: -50%; left: -60%;
+  width: 40%; height: 200%;
+  background: rgba(255,255,255,0.12);
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+}
+.btn-primary:hover::after { left: 120%; }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 52px rgba(230,57,70,0.6); }
+.btn-primary .arr { display: inline-block; transition: transform 0.3s; }
+.btn-primary:hover .arr { transform: translateX(5px); }
+
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 17px 36px; color: var(--muted); text-decoration: none;
+  border-radius: 12px; font-weight: 600; font-size: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
+}
+.btn-outline:hover { color: var(--text); border-color: rgba(255,255,255,0.18); transform: translateY(-2px); }
+
+/* Stats */
+.hero-stats {
+  display: flex; gap: 56px; justify-content: center; flex-wrap: wrap;
+  margin-top: 80px;
+  opacity: 0; animation: fadeUp 0.8s 1.05s ease forwards;
+  position: relative;
+}
+.hero-stats::before {
+  content: '';
+  position: absolute; top: -36px; left: 50%;
+  transform: translateX(-50%);
+  width: 1px; height: 28px;
+  background: linear-gradient(180deg, transparent, rgba(230,57,70,0.4));
+}
+.stat-item { text-align: center; }
+.stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px; letter-spacing: 0.04em; color: var(--text); line-height: 1;
+}
+.stat-num .accent { color: var(--red); }
+.stat-label {
+  font-size: 11px; font-weight: 500; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.12em; margin-top: 6px;
+}
+
+/* ECG strip at bottom of hero */
+.ecg-strip {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 100px; overflow: hidden; pointer-events: none;
+}
+.ecg-strip svg { width: 200%; height: 100%; animation: ecgScroll 4.5s linear infinite; }
+@keyframes ecgScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(28px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ═══════════ FLOW ═══════════ */
+.section { padding: 120px 52px; max-width: 1240px; margin: 0 auto; }
+
+.section-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.14em; color: var(--red);
+  margin-bottom: 18px;
+}
+.section-eyebrow::before { content:''; display:block; width:28px; height:1px; background:var(--red); }
+.section-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px, 5.5vw, 78px);
+  line-height: 0.95; letter-spacing: 0.03em;
+  margin-bottom: 18px; color: var(--text);
+}
+.section-desc {
+  font-size: 17px; color: var(--muted); max-width: 480px;
+  line-height: 1.75; margin-bottom: 72px;
+}
+
+/* Flow steps */
+.flow-track {
+  display: grid; grid-template-columns: repeat(5,1fr);
+  gap: 0; position: relative;
+}
+.flow-track::before {
+  content: '';
+  position: absolute; top: 42px; left: 42px; right: 42px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, rgba(230,57,70,0.2) 10%, rgba(230,57,70,0.5) 50%,
+    rgba(230,57,70,0.2) 90%, transparent);
+}
+/* Animated glowing dot on the track */
+.flow-track::after {
+  content: '';
+  position: absolute; top: 37px;
+  width: 12px; height: 12px;
+  background: var(--red); border-radius: 50%;
+  box-shadow: 0 0 14px var(--red), 0 0 28px rgba(230,57,70,0.4);
+  animation: trackTravel 5s ease-in-out infinite;
+  z-index: 2;
+}
+@keyframes trackTravel {
+  0%   { left: 3%;  opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { left: 93%; opacity: 0; }
+}
+
+.flow-node-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 0 14px;
+  position: relative; z-index: 1;
+  opacity: 0; transform: translateY(18px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.flow-node-wrap.visible { opacity: 1; transform: translateY(0); }
+
+.flow-circle {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; margin-bottom: 22px; position: relative;
+  transition: all 0.4s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.flow-node-wrap:hover .flow-circle {
+  border-color: rgba(230,57,70,0.45);
+  box-shadow: 0 0 36px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.05);
+  transform: scale(1.07) translateY(-3px);
+}
+.flow-num {
+  position: absolute; top: -5px; right: -5px;
+  width: 24px; height: 24px; background: var(--red);
+  border-radius: 50%; font-size: 11px; font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  color: white; box-shadow: 0 2px 8px var(--red-glow);
+}
+.flow-node-wrap h4 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px; letter-spacing: 0.06em;
+  color: var(--text); margin-bottom: 8px;
+}
+.flow-node-wrap p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ═══════════ FEATURES ═══════════ */
+.features-wrap { padding: 0 52px 120px; max-width: 1240px; margin: 0 auto; }
+.features-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 24px; margin-bottom: 52px;
+}
+.features-side { font-size: 15px; color: var(--muted); max-width: 300px; line-height: 1.7; }
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px; padding: 30px;
+  position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.3s, box-shadow 0.3s;
+}
+.feat-card.visible { opacity: 1; transform: translateY(0); }
+.feat-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--accent-clr, var(--red)), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.feat-card:hover { border-color: rgba(255,255,255,0.1); box-shadow: 0 28px 64px rgba(0,0,0,0.45); }
+.feat-card:hover::after { opacity: 1; }
+
+.feat-icon {
+  width: 54px; height: 54px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin-bottom: 22px;
+  background: var(--icon-bg, rgba(230,57,70,0.08));
+  border: 1px solid var(--icon-border, rgba(230,57,70,0.18));
+  transition: transform 0.3s;
+}
+.feat-card:hover .feat-icon { transform: scale(1.1) rotate(-4deg); }
+.feat-card h4 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 0.05em;
+  color: var(--text); margin-bottom: 10px;
+}
+.feat-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ═══════════ MONITOR SECTION ═══════════ */
+.monitor-wrap {
+  padding: 0 52px 120px; max-width: 1240px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1.15fr;
+  gap: 72px; align-items: center;
+}
+.monitor-copy .section-desc { margin-bottom: 36px; }
+.monitor-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 15px 30px; background: var(--red); color: white;
+  border-radius: 10px; text-decoration: none; font-weight: 600;
+  font-size: 15px; box-shadow: 0 6px 24px var(--red-glow);
+  transition: all 0.3s;
+}
+.monitor-btn:hover { background: #ff3a4a; transform: translateY(-2px); box-shadow: 0 14px 44px rgba(230,57,70,0.55); }
+
+.monitor-frame {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 22px; padding: 22px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02);
+  opacity: 0; transform: translateX(48px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.monitor-frame.visible { opacity: 1; transform: translateX(0); }
+
+.win-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.win-dots { display: flex; gap: 6px; }
+.win-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.win-dots span:nth-child(1) { background: #ff5f57; }
+.win-dots span:nth-child(2) { background: #ffbd2e; }
+.win-dots span:nth-child(3) { background: #28ca40; }
+.win-title { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.win-live { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--green); font-weight: 600; }
+.live-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px var(--green); animation: dotBlink 1.6s infinite; }
+
+.vitals { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.vcard {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; text-align: center;
+}
+.vcard-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.vcard-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: 0.04em; line-height: 1;
+}
+.vcard-val.red  { color: var(--red); }
+.vcard-val.cyan { color: var(--cyan); }
+.vcard-val.green{ color: var(--green); }
+.vcard-unit { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+#ecgCanvas {
+  width: 100%; height: 72px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; display: block; margin-bottom: 14px;
+}
+
+.caserows { display: flex; flex-direction: column; gap: 8px; }
+.caserow {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; font-size: 13px;
+}
+.crow-id { font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.crow-hosp { color: var(--muted); font-size: 11px; }
+.crow-badge {
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+}
+.b-reserved { background: rgba(255,193,7,0.1); color: #ffc107; border: 1px solid rgba(255,193,7,0.22); }
+.b-enroute  { background: rgba(59,123,255,0.1); color: #7aafff; border: 1px solid rgba(59,123,255,0.22); }
+.b-done     { background: rgba(0,230,118,0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.22); }
+
+/* ═══════════ CTA ═══════════ */
+.cta-wrap {
+  text-align: center; padding: 120px 24px 160px;
+  position: relative; overflow: hidden;
+}
+.cta-radial {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 800px; height: 400px;
+  background: radial-gradient(ellipse, rgba(230,57,70,0.16) 0%, transparent 70%);
+  pointer-events: none;
+  animation: ctaBreath 5s ease-in-out infinite;
+}
+@keyframes ctaBreath {
+  0%,100% { opacity:0.7; transform:translate(-50%,-50%) scale(1); }
+  50%      { opacity:1; transform:translate(-50%,-50%) scale(1.08); }
+}
+.cta-eyebrow { justify-content: center; margin-bottom: 22px; }
+.cta-eyebrow::before { display: none; }
+.cta-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 9vw, 120px);
+  letter-spacing: 0.03em; line-height: 0.92;
+  color: var(--text); margin-bottom: 24px;
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.cta-h2.visible { opacity: 1; transform: translateY(0); }
+.cta-desc {
+  font-size: 18px; color: var(--muted);
+  max-width: 420px; margin: 0 auto 52px;
+  line-height: 1.75;
+  opacity: 0; transition: opacity 0.8s 0.2s ease;
+}
+.cta-desc.visible { opacity: 1; }
+.cta-actions {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  opacity: 0; transition: opacity 0.8s 0.4s ease;
+}
+.cta-actions.visible { opacity: 1; }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 2;
+}
+.foot-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px; letter-spacing: 0.08em; color: var(--muted);
+}
+.foot-logo span { color: var(--red); }
+.foot-note { font-size: 12px; color: var(--muted); }
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 960px) {
+  nav { padding: 16px 24px; }
+  .section, .features-wrap, .monitor-wrap, .cta-wrap { padding-left: 24px; padding-right: 24px; }
+  .flow-track { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .flow-track::before, .flow-track::after { display: none; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .monitor-wrap { grid-template-columns: 1fr; }
+  .monitor-frame { transform: none; }
+  .hero-stats { gap: 32px; }
+  footer { flex-direction: column; gap: 12px; text-align: center; }
+}
+@media (max-width: 520px) {
+  .features-grid, .flow-track { grid-template-columns: 1fr; }
+  .nav-link { display: none; }
+  .btn-outline { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<canvas id="particleCanvas"></canvas>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="wrapper">
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-emblem">🚨</div>
+    <span class="nav-name"><span>Emergency</span>AI</span>
+  </a>
+  <div class="nav-links">
+    <a href="/doctor-dashboard" class="nav-link">Doctor Dashboard</a>
+    <a href="/result" class="nav-link">Case Summary</a>
+    <a href="/emergency-form" class="nav-cta">Start Emergency →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    AI-Powered Emergency Response System
+  </div>
+
+  <h1 class="hero-h1">
+    <span class="line-white">RAPID</span>
+    <span class="line-red">CARE FLOW</span>
+  </h1>
+
+  <p class="hero-sub">
+    From <strong>crisis to care</strong> in minutes — not hours.
+    AI triage, real-time hospital matching, instant bed reservation,
+    and automated dispatch coordination in one seamless system.
+  </p>
+
+  <div class="hero-actions">
+    <a href="/emergency-form" class="btn-primary">
+      Start Emergency <span class="arr">→</span>
+    </a>
+    <a href="/doctor-dashboard" class="btn-outline">
+      🩺 Doctor Dashboard
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num"><span id="c1">0</span><span class="accent">s</span></div>
+      <div class="stat-label">Avg. Triage Time</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span id="c2">0</span><span class="accent">+</span></div>
+      <div class="stat-label">Hospitals Connected</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span id="c3">0</span><span class="accent">%</span></div>
+      <div class="stat-label">Dispatch Accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span id="c4">0</span><span class="accent">x</span></div>
+      <div class="stat-label">Faster Than Manual</div>
+    </div>
+  </div>
+
+  <!-- Decorative ECG strip -->
+  <div class="ecg-strip">
+    <svg viewBox="0 0 1400 100" fill="none" preserveAspectRatio="none">
+      <polyline
+        points="0,50 80,50 100,50 112,14 124,86 134,8 150,92 162,50 240,50
+                320,50 340,50 352,14 364,86 374,8 390,92 402,50 480,50
+                560,50 580,50 592,14 604,86 614,8 630,92 642,50 720,50
+                800,50 820,50 832,14 844,86 854,8 870,92 882,50 960,50
+                1040,50 1060,50 1072,14 1084,86 1094,8 1110,92 1122,50 1200,50
+                1280,50 1300,50 1312,14 1324,86 1334,8 1350,92 1362,50 1400,50"
+        stroke="rgba(230,57,70,0.22)" stroke-width="2" stroke-linejoin="round"/>
+      <polyline
+        points="0,50 80,50 100,50 112,14 124,86 134,8 150,92 162,50 240,50
+                320,50 340,50 352,14 364,86 374,8 390,92 402,50 480,50
+                560,50 580,50 592,14 604,86 614,8 630,92 642,50 720,50
+                800,50 820,50 832,14 844,86 854,8 870,92 882,50 960,50
+                1040,50 1060,50 1072,14 1084,86 1094,8 1110,92 1122,50 1200,50
+                1280,50 1300,50 1312,14 1324,86 1334,8 1350,92 1362,50 1400,50"
+        stroke="rgba(230,57,70,0.08)" stroke-width="6" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</section>
+
+<!-- FLOW -->
+<div class="section">
+  <div class="section-eyebrow">How it works</div>
+  <h2 class="section-h2">Five Steps.<br>Zero Friction.</h2>
+  <p class="section-desc">Every second counts in an emergency. Our system compresses a 30-minute process into under 60 seconds.</p>
+
+  <div class="flow-track">
+    <div class="flow-node-wrap">
+      <div class="flow-circle">📝<span class="flow-num">1</span></div>
+      <h4>Describe</h4>
+      <p>Describe the emergency in plain language. GPS captures your exact location automatically.</p>
+    </div>
+    <div class="flow-node-wrap">
+      <div class="flow-circle">🩺<span class="flow-num">2</span></div>
+      <h4>AI Triage</h4>
+      <p>Severity scored 1–10. Emergency type classified. Required specialist identified instantly.</p>
+    </div>
+    <div class="flow-node-wrap">
+      <div class="flow-circle">🏥<span class="flow-num">3</span></div>
+      <h4>Pick Hospital</h4>
+      <p>Nearest hospitals ranked by distance and bed availability. Reserve a bed with one tap.</p>
+    </div>
+    <div class="flow-node-wrap">
+      <div class="flow-circle">👨‍⚕️<span class="flow-num">4</span></div>
+      <h4>Dispatch</h4>
+      <p>Doctor accepts case. Ambulance dispatched with ETA, priority level, and route guidance.</p>
+    </div>
+    <div class="flow-node-wrap">
+      <div class="flow-circle">✅<span class="flow-num">5</span></div>
+      <h4>Arrival</h4>
+      <p>Patient arrives, case is marked complete, and the bed is instantly released for the next emergency.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features-wrap">
+  <div class="features-header">
+    <div>
+      <div class="section-eyebrow">Platform Features</div>
+      <h2 class="section-h2" style="margin-bottom:0">Built for<br>Real Emergencies.</h2>
+    </div>
+    <p class="features-side">Every feature engineered for the highest-stakes moments, when lives depend on speed and accuracy.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feat-card" style="--accent-clr:var(--red);--icon-bg:rgba(230,57,70,0.08);--icon-border:rgba(230,57,70,0.18)">
+      <div class="feat-icon">⚡</div>
+      <h4>Instant AI Triage</h4>
+      <p>Plain-language emergency description → structured severity score, type classification, and specialist recommendation in under 2 seconds.</p>
+    </div>
+    <div class="feat-card" style="--accent-clr:var(--blue);--icon-bg:rgba(59,123,255,0.07);--icon-border:rgba(59,123,255,0.18)">
+      <div class="feat-icon">🗺️</div>
+      <h4>Live GPS Matching</h4>
+      <p>Real-time GPS cross-referenced with hospital proximity, live bed counts, and specialist availability for optimal routing.</p>
+    </div>
+    <div class="feat-card" style="--accent-clr:var(--green);--icon-bg:rgba(0,230,118,0.07);--icon-border:rgba(0,230,118,0.18)">
+      <div class="feat-icon">🛏️</div>
+      <h4>Atomic Bed Booking</h4>
+      <p>Thread-safe bed reservation with race-condition protection. Guaranteed no double-booking or availability surprises on arrival.</p>
+    </div>
+    <div class="feat-card" style="--accent-clr:var(--cyan);--icon-bg:rgba(0,212,255,0.07);--icon-border:rgba(0,212,255,0.18)">
+      <div class="feat-icon">🚑</div>
+      <h4>Smart Dispatch</h4>
+      <p>Priority-based ambulance dispatch with computed ETA, severity-scaled urgency, and real-time status tracking across the dashboard.</p>
+    </div>
+    <div class="feat-card" style="--accent-clr:#ffc107;--icon-bg:rgba(255,193,7,0.07);--icon-border:rgba(255,193,7,0.18)">
+      <div class="feat-icon">📊</div>
+      <h4>Doctor Dashboard</h4>
+      <p>Live-polling case management with filter tabs, severity indicators, dispatch status, and one-tap accept and complete workflows.</p>
+    </div>
+    <div class="feat-card" style="--accent-clr:#a371f7;--icon-bg:rgba(163,71,247,0.07);--icon-border:rgba(163,71,247,0.18)">
+      <div class="feat-icon">🔄</div>
+      <h4>Session Persistence</h4>
+      <p>Server-side sessions preserve your full emergency state — triage data, hospital selection, and booking — across browser refreshes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MONITOR MOCKUP -->
+<div class="monitor-wrap">
+  <div class="monitor-copy">
+    <div class="section-eyebrow">Live Dashboard</div>
+    <h2 class="section-h2">Real-Time<br>Case Control.</h2>
+    <p class="section-desc">
+      The doctor dashboard polls every 5 seconds. New cases surface immediately
+      with full severity context, dispatch details, and one-tap action buttons.
+    </p>
+    <a href="/doctor-dashboard" class="monitor-btn">Open Dashboard →</a>
+  </div>
+
+  <div class="monitor-frame" id="monitorFrame">
+    <div class="win-bar">
+      <div class="win-dots"><span></span><span></span><span></span></div>
+      <div class="win-title">EmergencyAI — Doctor Dashboard</div>
+      <div class="win-live"><span class="live-dot"></span>Live</div>
+    </div>
+
+    <div class="vitals">
+      <div class="vcard">
+        <div class="vcard-label">Active Cases</div>
+        <div class="vcard-val red" id="vCases">3</div>
+        <div class="vcard-unit">pending</div>
+      </div>
+      <div class="vcard">
+        <div class="vcard-label">En Route</div>
+        <div class="vcard-val cyan" id="vRoute">2</div>
+        <div class="vcard-unit">ambulances</div>
+      </div>
+      <div class="vcard">
+        <div class="vcard-label">Beds Free</div>
+        <div class="vcard-val green" id="vBeds">8</div>
+        <div class="vcard-unit">available</div>
+      </div>
+    </div>
+
+    <canvas id="ecgCanvas"></canvas>
+
+    <div class="caserows">
+      <div class="caserow">
+        <div>
+          <div class="crow-id">#001 — Cardiac Emergency</div>
+          <div class="crow-hosp">City Medical Center · Critical</div>
+        </div>
+        <span class="crow-badge b-reserved">Reserved</span>
+      </div>
+      <div class="caserow">
+        <div>
+          <div class="crow-id">#002 — Trauma</div>
+          <div class="crow-hosp">Apollo Hospital · Moderate</div>
+        </div>
+        <span class="crow-badge b-enroute">En Route</span>
+      </div>
+      <div class="caserow">
+        <div>
+          <div class="crow-id">#003 — Respiratory</div>
+          <div class="crow-hosp">Max Super Speciality · Low</div>
+        </div>
+        <span class="crow-badge b-done">Completed</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap">
+  <div class="cta-radial"></div>
+  <div class="section-eyebrow cta-eyebrow">Ready to deploy</div>
+  <h2 class="cta-h2" id="ctaH2">EVERY SECOND<br>MATTERS.</h2>
+  <p class="cta-desc" id="ctaDesc">
+    Don't let logistics cost a life. Start an emergency now and experience the full AI-powered care flow.
+  </p>
+  <div class="cta-actions" id="ctaActions">
+    <a href="/emergency-form" class="btn-primary">
+      Start Emergency <span class="arr">→</span>
+    </a>
+    <a href="/doctor-dashboard" class="btn-outline">
+      View Doctor Dashboard
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo"><span>Emergency</span>AI</div>
+  <div class="foot-note">Rapid Triage to Arrival · Real-time · AI-Powered · 2025</div>
+</footer>
+
+</div><!-- /wrapper -->
+
+<script>
+/* ─── CUSTOM CURSOR ─────────────────────────────────── */
+const cursor     = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursorRing');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function tick() {
+  cursor.style.left = mx+'px'; cursor.style.top = my+'px';
+  rx += (mx-rx)*0.13; ry += (my-ry)*0.13;
+  cursorRing.style.left = rx+'px'; cursorRing.style.top = ry+'px';
+  requestAnimationFrame(tick);
+})();
+document.querySelectorAll('a, button').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.width='18px'; cursor.style.height='18px'; cursor.style.background='#fff';
+    cursorRing.style.width='52px'; cursorRing.style.height='52px';
+    cursorRing.style.borderColor='var(--red)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.width='12px'; cursor.style.height='12px'; cursor.style.background='var(--red)';
+    cursorRing.style.width='36px'; cursorRing.style.height='36px';
+    cursorRing.style.borderColor='rgba(230,57,70,0.5)';
+  });
+});
+
+/* ─── PARTICLE CANVAS ──────────────────────────────── */
+const pc  = document.getElementById('particleCanvas');
+const pct = pc.getContext('2d');
+function resizePC() { pc.width=innerWidth; pc.height=innerHeight; }
+resizePC(); window.addEventListener('resize', resizePC);
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(init) {
+    this.x  = Math.random()*pc.width;
+    this.y  = init ? Math.random()*pc.height : (Math.random() < 0.5 ? 0 : pc.height);
+    this.vy = -(Math.random()*0.4+0.1);
+    this.vx = (Math.random()-0.5)*0.25;
+    this.life = 0; this.maxLife = 220+Math.random()*200;
+    this.r   = Math.random()*1.4+0.4;
+    this.isRed = Math.random() < 0.06;
+  }
+  update() {
+    this.x+=this.vx; this.y+=this.vy; this.life++;
+    if (this.life>this.maxLife || this.y<-10 || this.x<-10 || this.x>pc.width+10) this.reset(false);
+  }
+  draw() {
+    const alpha = Math.sin((this.life/this.maxLife)*Math.PI)*0.55;
+    pct.beginPath();
+    pct.arc(this.x, this.y, this.r, 0, Math.PI*2);
+    pct.fillStyle = this.isRed
+      ? `rgba(230,57,70,${alpha})`
+      : `rgba(${160+Math.round(Math.random()*60)},${175+Math.round(Math.random()*55)},255,${alpha*0.7})`;
+    pct.fill();
+  }
+}
+const pts = Array.from({length:130}, () => new Particle());
+
+function drawLines() {
+  for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++) {
+    const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<85) {
+      pct.beginPath(); pct.moveTo(pts[i].x,pts[i].y); pct.lineTo(pts[j].x,pts[j].y);
+      pct.strokeStyle=`rgba(90,110,200,${0.06*(1-d/85)})`; pct.lineWidth=0.5; pct.stroke();
+    }
+  }
+}
+(function animP() {
+  pct.clearRect(0,0,pc.width,pc.height);
+  drawLines(); pts.forEach(p=>{p.update();p.draw();});
+  requestAnimationFrame(animP);
+})();
+
+/* ─── ECG CANVAS ──────────────────────────────────── */
+const ec  = document.getElementById('ecgCanvas');
+const ect = ec.getContext('2d');
+function resizeEC() {
+  const dpr = window.devicePixelRatio||1;
+  ec.width  = ec.offsetWidth*dpr; ec.height = ec.offsetHeight*dpr;
+  ect.scale(dpr,dpr);
+}
+resizeEC(); window.addEventListener('resize', resizeEC);
+
+const ECG = [0,0,0,0,0,-10,28,-6,2,0,0,0,0,0,0,0,0,0,0,0,0,0];
+let ecgBuf=[], ecgPx=0, ecgPh=0;
+
+(function animECG() {
+  const W=ec.offsetWidth, H=ec.offsetHeight, mid=H/2;
+  ect.clearRect(0,0,W,H);
+  // Grid
+  ect.strokeStyle='rgba(230,57,70,0.055)'; ect.lineWidth=1;
+  for(let x=0;x<W;x+=18){ect.beginPath();ect.moveTo(x,0);ect.lineTo(x,H);ect.stroke();}
+  for(let y=0;y<H;y+=9){ect.beginPath();ect.moveTo(0,y);ect.lineTo(W,y);ect.stroke();}
+
+  const step = W/82;
+  ecgBuf.push({x:ecgPx, y: mid + ECG[ecgPh%ECG.length]*0.75});
+  if(ecgBuf.length>82) ecgBuf.shift();
+  ecgPx+=step; if(ecgPx>W){ecgPx=0;ecgBuf=[];}
+  ecgPh++;
+
+  if(ecgBuf.length>1){
+    // Glow layer
+    ect.shadowColor='#e63946'; ect.shadowBlur=10;
+    ect.strokeStyle='rgba(230,57,70,0.4)'; ect.lineWidth=4; ect.lineJoin='round';
+    ect.beginPath();
+    ecgBuf.forEach((p,i)=>i===0?ect.moveTo(p.x,p.y):ect.lineTo(p.x,p.y));
+    ect.stroke(); ect.shadowBlur=0;
+    // Sharp line
+    ect.strokeStyle='#e63946'; ect.lineWidth=1.8;
+    ect.beginPath();
+    ecgBuf.forEach((p,i)=>i===0?ect.moveTo(p.x,p.y):ect.lineTo(p.x,p.y));
+    ect.stroke();
+    // Tip dot
+    const last=ecgBuf[ecgBuf.length-1];
+    ect.shadowColor='#ff6b7a'; ect.shadowBlur=12;
+    ect.beginPath(); ect.arc(last.x,last.y,3.5,0,Math.PI*2);
+    ect.fillStyle='#ff8a93'; ect.fill(); ect.shadowBlur=0;
+  }
+  requestAnimationFrame(animECG);
+})();
+
+/* ─── COUNTER ANIMATION ────────────────────────────── */
+function countUp(el, to, dur=1600) {
+  let start=null;
+  (function step(ts) {
+    if(!start) start=ts;
+    const p=Math.min((ts-start)/dur,1);
+    el.textContent = Math.round((1-Math.pow(1-p,3))*to);
+    if(p<1) requestAnimationFrame(step); else el.textContent=to;
+  })(performance.now());
+}
+let counted=false;
+new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting&&!counted){
+      counted=true;
+      countUp(document.getElementById('c1'),8,1400);
+      countUp(document.getElementById('c2'),50,1900);
+      countUp(document.getElementById('c3'),98,2100);
+      countUp(document.getElementById('c4'),6,1300);
+    }
+  });
+},{threshold:0.5}).observe(document.querySelector('.hero-stats'));
+
+/* ─── SCROLL REVEAL ────────────────────────────────── */
+const revObs = new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(!entry.isIntersecting) return;
+    const el=entry.target;
+    if(el.classList.contains('flow-node-wrap')) {
+      const idx=[...el.parentElement.children].indexOf(el);
+      setTimeout(()=>el.classList.add('visible'), idx*130);
+    } else {
+      el.classList.add('visible');
+    }
+    revObs.unobserve(el);
+  });
+},{threshold:0.12});
+
+document.querySelectorAll('.flow-node-wrap').forEach(el=>revObs.observe(el));
+document.querySelectorAll('#monitorFrame, #ctaH2, #ctaDesc, #ctaActions').forEach(el=>revObs.observe(el));
+
+// Feature cards — staggered
+const fcObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const idx=[...e.target.parentElement.children].indexOf(e.target);
+    setTimeout(()=>e.target.classList.add('visible'),idx*90);
+    fcObs.unobserve(e.target);
+  });
+},{threshold:0.08});
+document.querySelectorAll('.feat-card').forEach(el=>fcObs.observe(el));
+
+/* ─── LIVE VITALS TICKER ───────────────────────────── */
+setInterval(()=>{
+  const v=document.getElementById('vBeds');
+  if(v) v.textContent=Math.max(4,Math.min(12,+v.textContent+(Math.random()>.5?1:-1)));
+},3200);
+setInterval(()=>{
+  const v=document.getElementById('vCases');
+  if(v) { const n=+v.textContent+(Math.random()>.7?1:Math.random()>.8?-1:0); v.textContent=Math.max(1,Math.min(8,n)); }
+},5000);
+</script>
+</body>
+</html>

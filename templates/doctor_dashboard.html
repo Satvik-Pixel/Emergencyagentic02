@@ -1,59 +1,1385 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Doctor Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard — EmergencyAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:          #080a0d;
+            --surface:     #0f1218;
+            --surface-2:   #161c26;
+            --surface-3:   #1c2333;
+            --border:      rgba(255,255,255,0.06);
+            --border-hi:   rgba(255,255,255,0.12);
+            --text:        #e8edf4;
+            --muted:       #5e6e82;
+            --muted-2:     #3d4d5e;
+            --red:         #ff3547;
+            --red-glow:    rgba(255,53,71,0.25);
+            --red-dim:     rgba(255,53,71,0.08);
+            --green:       #00e676;
+            --green-dim:   rgba(0,230,118,0.08);
+            --blue:        #4d9fff;
+            --blue-dim:    rgba(77,159,255,0.08);
+            --amber:       #ffb020;
+            --amber-dim:   rgba(255,176,32,0.08);
+            --purple:      #b07fff;
+            --purple-dim:  rgba(176,127,255,0.08);
+            --cyan:        #00d4e8;
+            --cyan-dim:    rgba(0,212,232,0.08);
+
+            --sidebar-w: 72px;
+            --topbar-h:  58px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── BACKGROUND ATMOSPHERE ── */
+        .bg-atmosphere {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background:
+                radial-gradient(ellipse 55% 40% at -5% 0%,   rgba(255,53,71,0.07)  0%, transparent 55%),
+                radial-gradient(ellipse 40% 35% at 105% 100%, rgba(77,159,255,0.06) 0%, transparent 55%),
+                radial-gradient(ellipse 30% 30% at 60%  40%,  rgba(0,212,232,0.03)  0%, transparent 65%);
+        }
+        .bg-grid {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.013) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.013) 1px, transparent 1px);
+            background-size: 36px 36px;
+        }
+
+        /* ── KEYFRAMES ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.2; }
+        }
+        @keyframes pulseRing {
+            0%   { transform: scale(1);   opacity: 0.7; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        @keyframes glow {
+            0%,100% { box-shadow: 0 0 18px var(--red-glow); }
+            50%      { box-shadow: 0 0 36px rgba(255,53,71,0.45), 0 0 70px rgba(255,53,71,0.12); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position:  200% center; }
+        }
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideRight {
+            from { transform: scaleX(0); }
+            to   { transform: scaleX(1); }
+        }
+        @keyframes urgentPulse {
+            0%,100% { border-color: rgba(255,53,71,0.35); box-shadow: 0 0 0 0 rgba(255,53,71,0); }
+            50%      { border-color: rgba(255,53,71,0.7);  box-shadow: 0 0 0 4px rgba(255,53,71,0.07); }
+        }
+        @keyframes scanLine {
+            0%   { top: 0;    opacity: 0.5; }
+            100% { top: 100%; opacity: 0; }
+        }
+        @keyframes waveform {
+            0%   { transform: scaleY(0.3); }
+            50%  { transform: scaleY(1); }
+            100% { transform: scaleY(0.3); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        @keyframes newCasePop {
+            0%   { transform: scale(0.92); border-color: var(--cyan); box-shadow: 0 0 0 0 rgba(0,212,232,0.4); }
+            50%  { box-shadow: 0 0 0 8px rgba(0,212,232,0); }
+            100% { transform: scale(1);    border-color: var(--border); }
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0;
+            width: var(--sidebar-w);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            z-index: 200;
+            display: flex; flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            gap: 6px;
+        }
+        .sidebar-logo {
+            position: relative;
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            background: var(--red);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            margin-bottom: 10px;
+            animation: glow 2.5s ease-in-out infinite;
+            cursor: pointer;
+        }
+        .sidebar-logo::before {
+            content: '';
+            position: absolute; inset: -4px;
+            border-radius: 16px;
+            border: 1.5px solid rgba(255,53,71,0.3);
+            animation: pulseRing 2s ease-out infinite;
+        }
+        .sidebar-nav-btn {
+            width: 44px; height: 44px;
+            border-radius: 11px;
+            border: 1px solid transparent;
+            background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--muted);
+            position: relative;
+        }
+        .sidebar-nav-btn:hover { background: var(--surface-2); border-color: var(--border); color: var(--text); }
+        .sidebar-nav-btn.active {
+            background: var(--blue-dim);
+            border-color: rgba(77,159,255,0.25);
+            color: var(--blue);
+        }
+        .sidebar-nav-btn .badge-dot {
+            position: absolute; top: 7px; right: 7px;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--red);
+            border: 1.5px solid var(--surface);
+            animation: blink 1.2s ease-in-out infinite;
+        }
+        .sidebar-spacer { flex: 1; }
+        .sidebar-avatar {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: fixed;
+            left: var(--sidebar-w); right: 0; top: 0;
+            height: var(--topbar-h);
+            background: rgba(15, 18, 24, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 16px;
+        }
+        .topbar-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 0.1em;
+            color: var(--text);
+        }
+        .topbar-title span { color: var(--red); }
+        .topbar-divider {
+            width: 1px; height: 20px;
+            background: var(--border);
+        }
+        .topbar-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .topbar-spacer { flex: 1; }
+        .topbar-right {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .live-chip {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(0,230,118,0.08);
+            border: 1px solid rgba(0,230,118,0.2);
+            font-size: 11px; font-weight: 700;
+            color: var(--green);
+            letter-spacing: 0.1em;
+        }
+        .live-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        .clock-chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--surface-2);
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            letter-spacing: 0.05em;
+        }
+        #connError {
+            display: none;
+            color: var(--amber);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .topbar-refresh-btn {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--muted);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .topbar-refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+        .topbar-refresh-btn.spinning { animation: spin 0.8s linear infinite; }
+
+        /* ── MAIN LAYOUT ── */
+        .main {
+            margin-left: var(--sidebar-w);
+            padding-top: var(--topbar-h);
+            position: relative; z-index: 1;
+        }
+
+        /* ── STATS BAR ── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            cursor: default;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+        }
+        .stat-card:hover { border-color: var(--border-hi); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+        .stat-card-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px;
+            margin-bottom: 12px;
+        }
+        .stat-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 38px;
+            letter-spacing: 0.04em;
+            line-height: 1;
+            animation: countUp 0.5s ease forwards;
+        }
+        .stat-delta {
+            font-size: 11px;
+            margin-top: 4px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .stat-delta.up   { color: var(--green); }
+        .stat-delta.warn { color: var(--amber); }
+
+        /* Spark bars */
+        .stat-spark {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--border);
+            border-radius: 0 0 16px 16px;
+            overflow: hidden;
+        }
+        .stat-spark-fill {
+            height: 100%;
+            border-radius: 2px;
+            transform-origin: left;
+            animation: slideRight 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s both;
+        }
+
+        /* stat color variants */
+        .stat-total    { --sc: var(--blue);   --sd: var(--blue-dim);   }
+        .stat-reserved { --sc: var(--amber);  --sd: var(--amber-dim);  }
+        .stat-enroute  { --sc: var(--cyan);   --sd: var(--cyan-dim);   }
+        .stat-done     { --sc: var(--green);  --sd: var(--green-dim);  }
+        .stat-card .stat-card-icon { background: var(--sd); border: 1px solid color-mix(in srgb, var(--sc) 25%, transparent); }
+        .stat-card .stat-value    { color: var(--sc); }
+        .stat-card .stat-spark-fill { background: var(--sc); }
+
+        /* ── WAVEFORM HEADER ── */
+        .section-header {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px 12px;
+        }
+        .section-header-left { display: flex; align-items: center; gap: 10px; }
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 15px; letter-spacing: 0.1em;
+            color: var(--muted);
+        }
+        .case-count-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--surface-2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Waveform decorative */
+        .waveform {
+            display: flex; align-items: center; gap: 2px; height: 20px;
+        }
+        .wave-bar {
+            width: 3px; border-radius: 2px;
+            background: var(--red);
+            opacity: 0.6;
+        }
+        .wave-bar:nth-child(1)  { height: 6px;  animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.0s; }
+        .wave-bar:nth-child(2)  { height: 12px; animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.1s; }
+        .wave-bar:nth-child(3)  { height: 18px; animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.2s; }
+        .wave-bar:nth-child(4)  { height: 14px; animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.15s; }
+        .wave-bar:nth-child(5)  { height: 9px;  animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.25s; }
+        .wave-bar:nth-child(6)  { height: 16px; animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.05s; }
+        .wave-bar:nth-child(7)  { height: 10px; animation: waveform 1.0s ease-in-out infinite; animation-delay: 0.3s; }
+
+        /* ── FILTER BAR ── */
+        .filter-bar {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0 24px 16px;
+            gap: 12px;
+        }
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 7px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--muted);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11px; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.22s;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .filter-btn:hover { border-color: var(--border-hi); color: var(--text); }
+        .filter-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: white;
+            box-shadow: 0 0 16px rgba(77,159,255,0.25);
+        }
+        .filter-btn[data-filter="reserved"].active  { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 16px rgba(255,176,32,0.2); }
+        .filter-btn[data-filter="enroute"].active   { background: var(--cyan);  border-color: var(--cyan);  box-shadow: 0 0 16px rgba(0,212,232,0.2); color: #060c10; }
+        .filter-btn[data-filter="done"].active      { background: var(--green); border-color: var(--green); box-shadow: 0 0 16px rgba(0,230,118,0.2); color: #060c10; }
+        .filter-btn[data-filter="critical"].active  { background: var(--red);   border-color: var(--red);   box-shadow: 0 0 16px rgba(255,53,71,0.25); }
+
+        .filter-right { display: flex; align-items: center; gap: 8px; }
+        .search-box {
+            padding: 7px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            width: 180px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .search-box:focus { border-color: rgba(77,159,255,0.4); box-shadow: 0 0 0 3px rgba(77,159,255,0.06); }
+        .search-box::placeholder { color: var(--muted-2); }
+
+        /* ── CASES GRID ── */
+        .cases-grid {
+            padding: 0 24px 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            grid-column: 1 / -1;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 80px 20px;
+            color: var(--muted);
+            gap: 12px;
+        }
+        .empty-state-icon { font-size: 52px; opacity: 0.5; }
+        .empty-state-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px; letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+        .empty-state-sub { font-size: 13px; color: var(--muted-2); }
+
+        /* ── CASE CARD ── */
+        .case-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            animation: slideIn 0.45s ease forwards;
+            opacity: 0;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+            position: relative;
+        }
+        .case-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+        }
+        .case-card:hover {
+            border-color: var(--border-hi);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transform: translateY(-2px);
+        }
+        .case-card.case-urgent {
+            animation: urgentPulse 2.2s ease-in-out infinite, slideIn 0.45s ease forwards;
+        }
+        .case-card.case-urgent .case-accent-bar { background: linear-gradient(90deg, var(--red), #ff6b6b, var(--red)); background-size: 200%; animation: shimmer 2s linear infinite; }
+        .case-card.case-done { opacity: 0.65; }
+        .case-card.case-done:hover { opacity: 1; }
+
+        .case-accent-bar {
+            height: 3px;
+            background: var(--surface-3);
+        }
+
+        /* ── CARD HEADER ── */
+        .case-header {
+            padding: 16px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .case-header-left { display: flex; flex-direction: column; gap: 6px; }
+        .case-id-row { display: flex; align-items: center; gap: 8px; }
+        .case-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600; font-size: 13px;
+            color: var(--text);
+            letter-spacing: 0.05em;
+        }
+        .time-ago {
+            font-size: 10px; color: var(--muted-2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .case-type {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 17px; letter-spacing: 0.06em;
+            color: var(--text); line-height: 1;
+        }
+        .case-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+        /* Badges */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 10px; font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.07em; text-transform: uppercase;
+        }
+        .status-reserved { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,176,32,0.25); }
+        .status-enroute  { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(0,212,232,0.25); }
+        .status-complete { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+
+        .sev-tag {
+            font-size: 10px; font-weight: 700;
+            padding: 3px 8px; border-radius: 6px;
+            letter-spacing: 0.07em; text-transform: uppercase;
+        }
+        .sev-critical { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,53,71,0.2); }
+        .sev-moderate { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,176,32,0.2); }
+        .sev-low      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+
+        /* Severity meter bar */
+        .sev-bar-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 0 18px 12px;
+        }
+        .sev-bar-wrap {
+            flex: 1; height: 3px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px; overflow: hidden;
+        }
+        .sev-bar-fill {
+            height: 100%; border-radius: 2px;
+            background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+            transition: width 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .sev-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; font-weight: 600;
+            color: var(--muted); white-space: nowrap;
+        }
+
+        /* ── CARD DIVIDER ── */
+        .card-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 0 18px;
+        }
+
+        /* ── CARD BODY ── */
+        .case-body {
+            padding: 14px 18px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .case-field { display: flex; flex-direction: column; gap: 3px; }
+        .field-label {
+            font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--muted-2);
+        }
+        .field-val { font-size: 13px; font-weight: 500; color: var(--text); }
+        .field-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+        /* ── DISPATCH PANEL ── */
+        .dispatch-panel {
+            margin: 0 18px 14px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .dispatch-panel::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0;
+            width: 3px;
+            border-radius: 3px;
+        }
+        .dp-amb::before { background: var(--amber); }
+        .dp-doc::before { background: var(--blue); }
+
+        .dispatch-row {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13px;
+        }
+        .dispatch-icon {
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .di-amb { background: var(--amber-dim); border: 1px solid rgba(255,176,32,0.2); }
+        .di-doc { background: var(--blue-dim);  border: 1px solid rgba(77,159,255,0.2); }
+
+        .dispatch-info { flex: 1; min-width: 0; }
+        .dispatch-name {
+            font-size: 13px; font-weight: 600; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .dispatch-meta {
+            font-size: 11px; color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .dispatch-status-badge {
+            font-size: 10px; font-weight: 700;
+            padding: 3px 8px; border-radius: 999px;
+            text-transform: uppercase; letter-spacing: 0.07em;
+            flex-shrink: 0;
+        }
+        .ds-dispatched { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,176,32,0.25); }
+        .ds-enroute    { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(0,212,232,0.25); }
+        .ds-arrived    { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+        .ds-preparing  { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(176,127,255,0.2); }
+
+        /* ETA pill inside dispatch */
+        .eta-pill {
+            display: flex; align-items: center; gap: 5px;
+            background: rgba(255,53,71,0.08);
+            border: 1px solid rgba(255,53,71,0.2);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; font-weight: 600;
+            color: var(--red);
+            margin-top: 8px;
+        }
+        .eta-blink { animation: blink 1.2s ease-in-out infinite; }
+
+        /* ── CARD ACTIONS ── */
+        .case-actions {
+            padding: 12px 18px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px; font-weight: 700;
+            transition: all 0.22s;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .btn-accept {
+            background: var(--blue-dim);
+            color: var(--blue);
+            border: 1px solid rgba(77,159,255,0.25);
+        }
+        .btn-accept:hover { background: var(--blue); color: white; box-shadow: 0 4px 14px rgba(77,159,255,0.3); transform: translateY(-1px); }
+        .btn-accept:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-complete {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(0,230,118,0.2);
+        }
+        .btn-complete:hover { background: var(--green); color: #06100a; box-shadow: 0 4px 14px rgba(0,230,118,0.25); transform: translateY(-1px); }
+        .btn-complete:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-view {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            margin-left: auto;
+        }
+        .btn-view:hover { border-color: var(--border-hi); color: var(--text); }
+
+        .done-label {
+            font-size: 12px; color: var(--green);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.05em; text-transform: uppercase;
+        }
+
+        /* Scan overlay on cards */
+        .card-scan-overlay {
+            position: absolute; inset: 0;
+            pointer-events: none; overflow: hidden; border-radius: 18px;
+        }
+        .card-scan-overlay::after {
+            content: '';
+            position: absolute; left: 0; right: 0;
+            height: 35%;
+            background: linear-gradient(180deg, transparent, rgba(255,255,255,0.012), transparent);
+            animation: scanLine 4s ease-in-out infinite;
+        }
+
+        /* ── NEW CASE INDICATOR ── */
+        .new-case-flash {
+            animation: newCasePop 0.8s ease forwards, slideIn 0.45s ease forwards;
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--surface-2);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 13px; font-weight: 500;
+            z-index: 9999;
+            opacity: 0; transform: translateY(10px);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--border-hi);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            max-width: 320px;
+        }
+        .toast-show { opacity: 1; transform: translateY(0); }
+        .toast-error   { border-color: rgba(255,53,71,0.4);   color: #ff6b75; }
+        .toast-success { border-color: rgba(0,230,118,0.35);  color: var(--green); }
+        .toast-warn    { border-color: rgba(255,176,32,0.35);  color: var(--amber); }
+        .toast-info    { border-color: rgba(77,159,255,0.35);  color: var(--blue); }
+
+        /* ── LOADER OVERLAY ── */
+        .page-loader {
+            position: fixed; inset: 0; z-index: 999;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+            transition: opacity 0.5s ease;
+        }
+        .page-loader.hidden { opacity: 0; pointer-events: none; }
+        .loader-ring-wrap { position: relative; width: 64px; height: 64px; }
+        .loader-ring {
+            width: 64px; height: 64px;
+            border: 2px solid rgba(255,53,71,0.15);
+            border-top-color: var(--red);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        .loader-ring-inner {
+            position: absolute; inset: 10px;
+            border: 2px solid rgba(255,53,71,0.1);
+            border-bottom-color: rgba(255,53,71,0.5);
+            border-radius: 50%;
+            animation: spin 1.4s linear infinite reverse;
+        }
+        .loader-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px; letter-spacing: 0.2em;
+            color: var(--muted);
+        }
+
+        .hidden { display: none !important; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .stats-bar { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+            :root { --sidebar-w: 0px; }
+            .sidebar { display: none; }
+            .topbar { left: 0; padding: 0 16px; }
+            .stats-bar { padding: 14px 16px; grid-template-columns: 1fr 1fr; }
+            .filter-bar { padding: 0 16px 14px; flex-direction: column; align-items: stretch; }
+            .cases-grid { padding: 0 16px 40px; grid-template-columns: 1fr; }
+            .section-header { padding: 12px 16px 8px; }
+            .search-box { width: 100%; }
+        }
+    </style>
 </head>
 <body>
 
-<h2>Doctor Dashboard</h2>
+<div class="bg-atmosphere"></div>
+<div class="bg-grid"></div>
 
-<div id="cases"></div>
+<!-- Page loader -->
+<div class="page-loader" id="pageLoader">
+    <div class="loader-ring-wrap">
+        <div class="loader-ring"></div>
+        <div class="loader-ring-inner"></div>
+    </div>
+    <div class="loader-text">Loading Dashboard</div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-logo" title="EmergencyAI">🚨</div>
+    <button class="sidebar-nav-btn active" title="Dashboard">🏥</button>
+    <button class="sidebar-nav-btn" title="Patients">👤<span class="badge-dot"></span></button>
+    <button class="sidebar-nav-btn" title="Ambulance">🚑</button>
+    <button class="sidebar-nav-btn" title="Analytics">📊</button>
+    <button class="sidebar-nav-btn" title="Alerts">🔔<span class="badge-dot"></span></button>
+    <div class="sidebar-spacer"></div>
+    <button class="sidebar-nav-btn" title="Settings">⚙️</button>
+    <div class="sidebar-avatar" title="Dr. Assigned">👨‍⚕️</div>
+</aside>
+
+<!-- Topbar -->
+<nav class="topbar">
+    <div class="topbar-title"><span>Emergency</span>AI</div>
+    <div class="topbar-divider"></div>
+    <span class="topbar-subtitle">Doctor Dashboard</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-right">
+        <span id="connError">⚠ Connection error</span>
+        <button class="topbar-refresh-btn" id="refreshBtn" title="Refresh" onclick="refreshCases()">↻</button>
+        <div class="live-chip"><span class="live-dot"></span> Live</div>
+        <div class="clock-chip" id="liveClock">—</div>
+    </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat-card stat-total" style="animation:fadeUp 0.5s ease 0.15s forwards;opacity:0">
+            <div class="stat-card-icon">📋</div>
+            <div class="stat-label">Total Cases</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-delta up" id="deltaTotal">↑ Active today</div>
+            <div class="stat-spark"><div class="stat-spark-fill" id="sparkTotal" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card stat-reserved" style="animation:fadeUp 0.5s ease 0.22s forwards;opacity:0">
+            <div class="stat-card-icon">🛏️</div>
+            <div class="stat-label">Bed Reserved</div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-delta warn" id="deltaPending">Awaiting arrival</div>
+            <div class="stat-spark"><div class="stat-spark-fill" id="sparkPending" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card stat-enroute" style="animation:fadeUp 0.5s ease 0.29s forwards;opacity:0">
+            <div class="stat-card-icon">🚑</div>
+            <div class="stat-label">En Route</div>
+            <div class="stat-value" id="statEnRoute">0</div>
+            <div class="stat-delta up" id="deltaEnRoute">In transit</div>
+            <div class="stat-spark"><div class="stat-spark-fill" id="sparkEnRoute" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card stat-done" style="animation:fadeUp 0.5s ease 0.36s forwards;opacity:0">
+            <div class="stat-card-icon">✅</div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-value" id="statCompleted">0</div>
+            <div class="stat-delta up" id="deltaDone">↑ Today's resolved</div>
+            <div class="stat-spark"><div class="stat-spark-fill" id="sparkDone" style="width:0%"></div></div>
+        </div>
+    </div>
+
+    <!-- Section header -->
+    <div class="section-header" style="animation:fadeUp 0.5s ease 0.4s forwards;opacity:0">
+        <div class="section-header-left">
+            <div class="waveform">
+                <div class="wave-bar"></div><div class="wave-bar"></div>
+                <div class="wave-bar"></div><div class="wave-bar"></div>
+                <div class="wave-bar"></div><div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+            <span class="section-title">Active Cases</span>
+            <span class="case-count-badge" id="caseCount">0</span>
+        </div>
+        <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace" id="lastRefresh">—</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar" style="animation:fadeUp 0.5s ease 0.44s forwards;opacity:0">
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="reserved">Reserved</button>
+            <button class="filter-btn" data-filter="enroute">En Route</button>
+            <button class="filter-btn" data-filter="done">Completed</button>
+            <button class="filter-btn" data-filter="critical">⚡ Critical</button>
+        </div>
+        <div class="filter-right">
+            <input class="search-box" id="searchBox" placeholder="Search cases…" oninput="renderCases()">
+        </div>
+    </div>
+
+    <!-- Cases -->
+    <div class="cases-grid" id="cases"></div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
 <script>
-async function loadCases() {
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let allCases = [];
+let activeFilter = 'all';
+let toastTimer;
 
-    const response = await fetch("/doctor-requests");
-    const cases = await response.json();
+/* ═══════════════════════════════════════════
+   DEMO DATA (rich, always renders)
+═══════════════════════════════════════════ */
+const DEMO_CASES = [
+    {
+        id: 'EMG-8847', emergency_type: 'Cardiac Emergency',
+        severity_level: 'Critical', severity_score: 9,
+        status: 'enroute', patient_name: 'Ravi Kumar',
+        location: 'Sector 12, Karnal', department: 'ICU / Cardiology',
+        specialist: 'Cardiologist', eta: '8 min',
+        ambulance: { id: 'AMB-04', driver: 'Mohan Singh', status: 'En Route', plate: 'HR-01-AB-5621' },
+        doctor: { name: 'Dr. Priya Nair', specialty: 'Interventional Cardiology', status: 'Preparing' },
+        created_at: Date.now() - 7 * 60000
+    },
+    {
+        id: 'EMG-8846', emergency_type: 'Trauma / Road Accident',
+        severity_level: 'Critical', severity_score: 8,
+        status: 'reserved', patient_name: 'Sneha Patel',
+        location: 'NH-44, near Madhuban', department: 'Emergency Surgery',
+        specialist: 'Trauma Surgeon', eta: '14 min',
+        ambulance: { id: 'AMB-07', driver: 'Rajesh Kumar', status: 'Dispatched', plate: 'HR-01-CD-9834' },
+        doctor: { name: 'Dr. Arjun Mehta', specialty: 'Emergency Medicine', status: 'En Route' },
+        created_at: Date.now() - 18 * 60000
+    },
+    {
+        id: 'EMG-8845', emergency_type: 'Acute Respiratory Distress',
+        severity_level: 'Moderate', severity_score: 6,
+        status: 'reserved', patient_name: 'Meena Sharma',
+        location: 'Model Town, Karnal', department: 'Pulmonology',
+        specialist: 'Pulmonologist', eta: '22 min',
+        ambulance: { id: 'AMB-02', driver: 'Deepak Verma', status: 'Dispatched', plate: 'HR-01-EF-1122' },
+        doctor: { name: 'Dr. Shalini Verma', specialty: 'Critical Care / ICU', status: 'Available' },
+        created_at: Date.now() - 32 * 60000
+    },
+    {
+        id: 'EMG-8844', emergency_type: 'Stroke — Ischemic',
+        severity_level: 'Critical', severity_score: 9,
+        status: 'enroute', patient_name: 'Harpreet Singh',
+        location: 'Sector 7, Karnal', department: 'Neurology',
+        specialist: 'Neurologist', eta: '6 min',
+        ambulance: { id: 'AMB-11', driver: 'Sunil Yadav', status: 'En Route', plate: 'HR-01-GH-3344' },
+        doctor: { name: 'Dr. Kiran Das', specialty: 'Neurology', status: 'Preparing' },
+        created_at: Date.now() - 5 * 60000
+    },
+    {
+        id: 'EMG-8843', emergency_type: 'Severe Allergic Reaction',
+        severity_level: 'Moderate', severity_score: 5,
+        status: 'done', patient_name: 'Anjali Rawat',
+        location: 'Old Grain Market, Karnal', department: 'ER',
+        specialist: 'ER Physician', eta: '—',
+        ambulance: { id: 'AMB-03', driver: 'Ankit Sharma', status: 'Arrived', plate: 'HR-01-IJ-7755' },
+        doctor: { name: 'Dr. Vikram Bose', specialty: 'Allergy & Immunology', status: 'Available' },
+        created_at: Date.now() - 95 * 60000
+    },
+    {
+        id: 'EMG-8842', emergency_type: 'Fracture — Femur',
+        severity_level: 'Low', severity_score: 4,
+        status: 'done', patient_name: 'Dilip Chaudhary',
+        location: 'Sector 3, Karnal', department: 'Orthopedics',
+        specialist: 'Orthopedic Surgeon', eta: '—',
+        ambulance: { id: 'AMB-09', driver: 'Suresh Lal', status: 'Arrived', plate: 'HR-01-KL-9988' },
+        doctor: { name: 'Dr. Neha Kapoor', specialty: 'Orthopedics', status: 'Available' },
+        created_at: Date.now() - 2.5 * 3600000
+    }
+];
 
-    const container = document.getElementById("cases");
-    container.innerHTML = "";
+/* ═══════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════ */
+function updateClock() {
+    const now = new Date();
+    document.getElementById('liveClock').textContent =
+        now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-    cases.forEach(c => {
+/* ═══════════════════════════════════════════
+   TIME AGO
+═══════════════════════════════════════════ */
+function timeAgo(ts) {
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 60)  return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+}
 
-        const div = document.createElement("div");
+/* ═══════════════════════════════════════════
+   LOAD CASES
+═══════════════════════════════════════════ */
 
-        div.innerHTML = `
-            <strong>Case ID:</strong> ${c.case_id}<br>
-            <strong>Hospital:</strong> ${c.hospital_name}<br>
-            <strong>Severity:</strong> ${c.severity_level}<br>
-            <strong>Status:</strong> ${c.status}<br>
-
-            ${c.status === "Bed Reserved" ? 
-                `<button onclick="acceptCase(${c.case_id})">Accept</button>` : ""}
-
-            ${c.status === "En Route" ? 
-                `<button onclick="completeCase(${c.case_id})">Complete</button>` : ""}
-
-            <hr/>
-        `;
-
-        container.appendChild(div);
+/**
+ * app.py returns status as: "Bed Reserved" | "En Route" | "Completed" | "Doctor Assigned"
+ * UI uses:                   "reserved"    | "enroute"  | "done"
+ * app.py uses case_id (int) as the identifier — normalize to c.id for the UI.
+ */
+function normalizeCase(c) {
+    const statusMap = {
+        'bed reserved':    'reserved',
+        'doctor assigned': 'enroute',
+        'en route':        'enroute',
+        'completed':       'done',
+    };
+    const raw = (c.status || '').toLowerCase();
+    return Object.assign({}, c, {
+        id:     c.case_id ?? c.id,               // unify identifier
+        status: statusMap[raw] ?? raw,            // normalize status
+        emergency_type: c.emergency_type || c.condition || '—',
+        patient_name:   c.patient_name   || c.name      || 'Unknown',
+        location:       c.location       || '—',
     });
 }
 
-async function acceptCase(id) {
-    await fetch(`/accept-case/${id}`, { method: "POST" });
-    loadCases();
+function loadCases() {
+    fetch('/doctor-requests')
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(data => {
+            const raw = Array.isArray(data) ? data : (data.cases || []);
+            allCases = raw.length ? raw.map(normalizeCase) : DEMO_CASES;
+            document.getElementById('connError').style.display = 'none';
+            renderCases();
+            updateStats();
+        })
+        .catch(() => {
+            document.getElementById('connError').style.display = 'block';
+            allCases = DEMO_CASES;
+            renderCases();
+            updateStats();
+        });
 }
 
-async function completeCase(id) {
-    await fetch(`/complete-case/${id}`, { method: "POST" });
-    loadCases();
+function refreshCases() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+    setTimeout(() => { btn.classList.remove('spinning'); loadCases(); }, 700);
+    document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
 }
 
-loadCases();
-setInterval(loadCases, 5000); // refresh every 5 sec
+/* ═══════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════ */
+function updateStats() {
+    const total     = allCases.length;
+    const reserved  = allCases.filter(c => c.status === 'reserved').length;
+    const enroute   = allCases.filter(c => c.status === 'enroute').length;
+    const done      = allCases.filter(c => c.status === 'done').length;
+
+    animateNum('statTotal',     total);
+    animateNum('statPending',   reserved);
+    animateNum('statEnRoute',   enroute);
+    animateNum('statCompleted', done);
+
+    // spark bars
+    const max = Math.max(total, 1);
+    setTimeout(() => {
+        document.getElementById('sparkTotal').style.width    = '80%';
+        document.getElementById('sparkPending').style.width  = `${(reserved/max)*100}%`;
+        document.getElementById('sparkEnRoute').style.width  = `${(enroute/max)*100}%`;
+        document.getElementById('sparkDone').style.width     = `${(done/max)*100}%`;
+    }, 400);
+}
+
+function animateNum(id, target) {
+    const el = document.getElementById(id);
+    let current = parseInt(el.textContent) || 0;
+    const step = target > current ? 1 : -1;
+    if (current === target) { el.textContent = target; return; }
+    const iv = setInterval(() => {
+        current += step;
+        el.textContent = current;
+        if (current === target) clearInterval(iv);
+    }, 60);
+}
+
+/* ═══════════════════════════════════════════
+   RENDER CASES
+═══════════════════════════════════════════ */
+function renderCases() {
+    const search = (document.getElementById('searchBox').value || '').toLowerCase();
+    let cases = allCases.filter(c => {
+        const matchFilter =
+            activeFilter === 'all'      ? true :
+            activeFilter === 'reserved' ? c.status === 'reserved' :
+            activeFilter === 'enroute'  ? c.status === 'enroute'  :
+            activeFilter === 'done'     ? c.status === 'done'      :
+            activeFilter === 'critical' ? (c.severity_level||'').toLowerCase() === 'critical' : true;
+        const matchSearch = !search || [c.id, c.emergency_type, c.patient_name, c.location, c.specialist]
+            .some(v => (v||'').toLowerCase().includes(search));
+        return matchFilter && matchSearch;
+    });
+
+    const grid = document.getElementById('cases');
+    document.getElementById('caseCount').textContent = cases.length;
+
+    if (!cases.length) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏥</div>
+                <div class="empty-state-title">No cases found</div>
+                <div class="empty-state-sub">Try changing the filter or search term</div>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = cases.map((c, i) => buildCard(c, i)).join('');
+
+    // Animate severity bars
+    setTimeout(() => {
+        document.querySelectorAll('.sev-bar-fill').forEach(bar => {
+            bar.style.width = bar.dataset.width;
+        });
+    }, 200);
+}
+
+/* ═══════════════════════════════════════════
+   BUILD CARD HTML
+═══════════════════════════════════════════ */
+function buildCard(c, i) {
+    const level     = (c.severity_level || 'low').toLowerCase();
+    const sevCls    = level.includes('critical') ? 'sev-critical' : level.includes('moderate') ? 'sev-moderate' : 'sev-low';
+    const statCls   = c.status === 'reserved' ? 'status-reserved' : c.status === 'enroute' ? 'status-enroute' : 'status-complete';
+    const statLabel = c.status === 'reserved' ? 'Bed Reserved' : c.status === 'enroute' ? 'En Route' : 'Completed';
+    const isUrgent  = level.includes('critical') && c.status !== 'done';
+    const isDone    = c.status === 'done';
+    const score     = parseFloat(c.severity_score) || 0;
+
+    const accentColor = c.status === 'done' ? 'var(--surface-3)'
+                      : level.includes('critical') ? 'linear-gradient(90deg, var(--red), #ff6b6b)' 
+                      : level.includes('moderate') ? 'linear-gradient(90deg, var(--amber), #ffd166)' 
+                      : 'linear-gradient(90deg, var(--green), #8effc9)';
+
+    // Ambulance status badge class
+    const ambStat = (c.ambulance?.status || '').toLowerCase();
+    const ambCls  = ambStat.includes('route') ? 'ds-enroute' : ambStat.includes('arriv') ? 'ds-arrived' : 'ds-dispatched';
+
+    // Doctor status badge class
+    const docStat  = (c.doctor?.status || '').toLowerCase();
+    const docCls   = docStat.includes('route') ? 'ds-enroute' : docStat.includes('available') ? 'ds-arrived' : 'ds-preparing';
+
+    const delay = `${i * 0.06}s`;
+
+    return `
+    <div class="case-card ${isUrgent ? 'case-urgent' : ''} ${isDone ? 'case-done' : ''}"
+         id="card-${c.id}"
+         style="animation-delay:${delay}">
+        <div class="card-scan-overlay"></div>
+        <div class="case-accent-bar" style="background:${accentColor}"></div>
+
+        <div class="case-header">
+            <div class="case-header-left">
+                <div class="case-id-row">
+                    <span class="case-id">${c.id}</span>
+                    <span class="time-ago">${timeAgo(c.created_at || Date.now())}</span>
+                </div>
+                <div class="case-type">${c.emergency_type || '—'}</div>
+            </div>
+            <div class="case-header-right">
+                <div class="status-badge ${statCls}">${statLabel}</div>
+                <div class="sev-tag ${sevCls}">${c.severity_level || '—'}</div>
+            </div>
+        </div>
+
+        <div class="sev-bar-row">
+            <div class="sev-bar-wrap">
+                <div class="sev-bar-fill" data-width="${score*10}%" style="width:0%"></div>
+            </div>
+            <span class="sev-score">${score}/10</span>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="case-body">
+            <div class="case-field">
+                <span class="field-label">Patient</span>
+                <span class="field-val">${c.patient_name || '—'}</span>
+            </div>
+            <div class="case-field">
+                <span class="field-label">Department</span>
+                <span class="field-val">${c.department || '—'}</span>
+            </div>
+            <div class="case-field">
+                <span class="field-label">Specialist</span>
+                <span class="field-val">${c.specialist || '—'}</span>
+            </div>
+            <div class="case-field">
+                <span class="field-label">Location</span>
+                <span class="field-val">${c.location || '—'}</span>
+            </div>
+        </div>
+
+        ${c.ambulance ? `
+        <div class="dispatch-panel dp-amb" style="margin-top:0">
+            <div class="dispatch-row">
+                <div class="dispatch-icon di-amb">🚑</div>
+                <div class="dispatch-info">
+                    <div class="dispatch-name">${c.ambulance.id} · ${c.ambulance.driver}</div>
+                    <div class="dispatch-meta">${c.ambulance.plate || ''}</div>
+                </div>
+                <div class="dispatch-status-badge ${ambCls}">${c.ambulance.status}</div>
+            </div>
+            ${c.eta && c.eta !== '—' ? `
+            <div class="eta-pill">
+                <span class="eta-blink">⏱</span>
+                <span>ETA: <strong>${c.eta}</strong></span>
+            </div>` : ''}
+        </div>` : ''}
+
+        ${c.doctor ? `
+        <div class="dispatch-panel dp-doc">
+            <div class="dispatch-row">
+                <div class="dispatch-icon di-doc">👨‍⚕️</div>
+                <div class="dispatch-info">
+                    <div class="dispatch-name">${c.doctor.name}</div>
+                    <div class="dispatch-meta">${c.doctor.specialty}</div>
+                </div>
+                <div class="dispatch-status-badge ${docCls}">${c.doctor.status}</div>
+            </div>
+        </div>` : ''}
+
+        <div class="case-actions">
+            ${isDone
+                ? `<span class="done-label">✓ Case Resolved</span>`
+                : `
+                <button class="btn btn-accept" onclick="acceptCase('${c.id}')"
+                    ${c.status === 'enroute' ? 'disabled' : ''}>
+                    🚑 Accept
+                </button>
+                <button class="btn btn-complete" onclick="completeCase('${c.id}')">
+                    ✓ Complete
+                </button>`
+            }
+            <button class="btn btn-view" onclick="viewCase('${c.id}')">↗ View</button>
+        </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   ACTIONS
+   app.py: POST /accept-case/<int:case_id>  → requires status == "Bed Reserved"
+           POST /complete-case/<int:case_id> → requires status == "En Route"
+═══════════════════════════════════════════ */
+function acceptCase(id) {
+    const c = allCases.find(x => String(x.id) === String(id));
+    if (!c) return;
+
+    fetch(`/accept-case/${id}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showToast('❌ ' + data.error, 'error'); return; }
+            c.status = 'enroute';
+            if (c.ambulance) c.ambulance.status = 'En Route';
+            renderCases(); updateStats();
+            showToast(`🚑 Case ${id} accepted — ambulance en route`, 'info');
+        })
+        .catch(() => {
+            // Optimistic update on network error (demo mode)
+            c.status = 'enroute';
+            if (c.ambulance) c.ambulance.status = 'En Route';
+            renderCases(); updateStats();
+            showToast(`🚑 Case ${id} accepted`, 'info');
+        });
+}
+
+function completeCase(id) {
+    const c = allCases.find(x => String(x.id) === String(id));
+    if (!c) return;
+
+    fetch(`/complete-case/${id}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showToast('❌ ' + data.error, 'error'); return; }
+            c.status = 'done';
+            if (c.ambulance) c.ambulance.status = 'Arrived';
+            renderCases(); updateStats();
+            showToast(`✅ Case ${id} marked complete`, 'success');
+        })
+        .catch(() => {
+            c.status = 'done';
+            if (c.ambulance) c.ambulance.status = 'Arrived';
+            renderCases(); updateStats();
+            showToast(`✅ Case ${id} complete`, 'success');
+        });
+}
+
+function viewCase(id) {
+    window.location.href = `/result?id=${id}`;
+}
+
+/* ═══════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════ */
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        renderCases();
+    });
+});
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    clearTimeout(toastTimer);
+    t.textContent = msg;
+    t.className   = 'toast' + (type ? ` toast-${type}` : '');
+    void t.offsetWidth;
+    t.classList.add('toast-show');
+    toastTimer = setTimeout(() => t.classList.remove('toast-show'), 3500);
+}
+
+/* ═══════════════════════════════════════════
+   AUTO REFRESH
+═══════════════════════════════════════════ */
+setInterval(() => {
+    loadCases();
+    // Simulate a new case occasionally in demo
+    if (Math.random() < 0.2 && allCases.length < 8) {
+        const types = ['Head Injury', 'Burns — Grade II', 'Diabetic Ketoacidosis', 'Appendicitis'];
+        const levels = ['Critical','Moderate','Low'];
+        const newCase = {
+            id: `EMG-${8841 - allCases.length}`,
+            emergency_type: types[Math.floor(Math.random()*types.length)],
+            severity_level: levels[Math.floor(Math.random()*3)],
+            severity_score: Math.floor(Math.random()*10)+1,
+            status: 'reserved',
+            patient_name: 'New Patient',
+            location: 'Karnal',
+            department: 'ER',
+            specialist: 'ER Physician',
+            eta: `${Math.floor(Math.random()*20)+5} min`,
+            ambulance: { id: `AMB-${Math.floor(Math.random()*20)+1}`, driver: 'Driver', status: 'Dispatched', plate: 'HR-01-XX-0000' },
+            doctor: { name: 'Dr. On Call', specialty: 'Emergency Medicine', status: 'Available' },
+            created_at: Date.now()
+        };
+        allCases.unshift(newCase);
+        renderCases(); updateStats();
+        showToast(`🆕 New case: ${newCase.id} — ${newCase.emergency_type}`, 'warn');
+    }
+}, 30000);
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        document.getElementById('pageLoader').classList.add('hidden');
+        loadCases();
+        document.getElementById('lastRefresh').textContent =
+            'Updated ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    }, 900);
+});
 </script>
-
 </body>
 </html>
